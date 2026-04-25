@@ -1,0 +1,12 @@
+## Cursor auto-generates
+When Cursor auto-generates a Git commit message for this repository, I would like you to use English and commit message less than 100 characters.
+
+## Code style
+
+- **Early return:** Prefer guard clauses at the top of a function (`if (!precondition) return;` or `return false;`). Handle invalid state first so the “happy path” stays flat and readable at the bottom.
+- **`if` bodies:** Use `{ }` whenever the body has more than one statement. If the body is **only** a `return` (including `return value;`), it may be written on one line: `if (cond) return value;`
+- **`while` / `for`:** Use `{ }` when the loop body has more than one statement. A single-statement body may stay on one line if it stays clear (e.g. `if (!f) break;`).
+- **Long `&&` chains:** If one expression uses **more than three** operands joined by `&&` (i.e. **three or more** `&&` operators), break it across lines: keep the first operand on the first line, then put each `&& …` at the **beginning** of the next line, aligned with the same indent as the opening `if`/`while`/`return` (continuation lines indented one level if that reads better).
+
+## Project hardware reference (`README.md`)
+- **Read** [`README.md`](README.md) when work touches this board (ESP32-S3 **ES3C28P** / **ES3N28P**, 2.8" ILI9341, touch, SD, audio, pins): pinout, buses (SPI MOSI/MISO, I2C, SDIO, I2S), and wiki links live there.
