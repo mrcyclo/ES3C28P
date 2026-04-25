@@ -9,9 +9,9 @@
 #define TOUCH_FT6336_RST 18
 
 #define TOUCH_MAP_X1 0
-#define TOUCH_MAP_X2 240
+#define TOUCH_MAP_X2 TFT_WIDTH
 #define TOUCH_MAP_Y1 0
-#define TOUCH_MAP_Y2 320
+#define TOUCH_MAP_Y2 TFT_HEIGHT
 
 static int touch_last_x = 0, touch_last_y = 0;
 static unsigned short int width = 0, height = 0, rotation, min_x = 0, max_x = 0, min_y = 0, max_y = 0;
@@ -27,19 +27,24 @@ struct TouchResult
 
 struct Touch
 {
-    static void setup(unsigned short int width, unsigned short int height, unsigned char roration)
+    static void setup(unsigned char roration)
     {
         switch (roration)
         {
         case ROTATION_NORMAL:
         case ROTATION_INVERTED:
+            width = TFT_WIDTH;
+            height = TFT_HEIGHT;
             min_x = TOUCH_MAP_X1;
             max_x = TOUCH_MAP_X2;
             min_y = TOUCH_MAP_Y1;
             max_y = TOUCH_MAP_Y2;
             break;
+
         case ROTATION_LEFT:
         case ROTATION_RIGHT:
+            width = TFT_HEIGHT;
+            height = TFT_WIDTH;
             min_x = TOUCH_MAP_Y1;
             max_x = TOUCH_MAP_Y2;
             min_y = TOUCH_MAP_X1;

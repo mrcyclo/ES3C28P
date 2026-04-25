@@ -58,7 +58,7 @@ void setup()
         tft_dsc->tft->invertDisplay(true);
     }
 
-    Touch::setup(TFT_WIDTH, TFT_HEIGHT, TFT_ROTATION);
+    Touch::setup(TFT_ROTATION);
 
     // Initialize the (dummy) input device driver
     auto indev = lv_indev_create();
@@ -93,7 +93,7 @@ void loop()
     }
     else
     {
-        lv_label_set_text_fmt(lb_fps, "#00ff00 %d (%d)#", fps_count, start_time);
+        lv_label_set_text_fmt(lb_fps, "#0077ff %d (%d)#", fps_count, start_time);
         fps_count = 1;
         fps_time = start_time;
     }
