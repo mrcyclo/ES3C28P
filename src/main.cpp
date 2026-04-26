@@ -2,11 +2,11 @@
 #include <TFT_eSPI.h>
 #include <lvgl.h>
 #include "touch.h"
+#include "wifi_connector.h"
 
 #define TFT_ROTATION LV_DISPLAY_ROTATION_0
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
-lv_obj_t *label = nullptr;
 
 #define FPS 60
 lv_obj_t *lb_fps = nullptr;
@@ -26,8 +26,6 @@ void lv_touch_read(lv_indev_t *indev, lv_indev_data_t *data)
         data->state = LV_INDEV_STATE_RELEASED;
         return;
     }
-
-    lv_label_set_text_fmt(label, "%d %d", t.x, t.y);
 
     data->point.x = t.x;
     data->point.y = t.y;
@@ -70,20 +68,18 @@ void setup()
     lv_label_set_recolor(lb_fps, true);
     lv_label_set_text(lb_fps, "0");
 
-    auto btn = lv_button_create(lv_screen_active());
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_size(btn, 100, 50);
-
-    label = lv_label_create(btn);
-    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-    lv_label_set_text(label, "Button");
-
     Serial.println("[Setup] End setup");
 }
 
 void loop()
 {
     const unsigned long start_time = millis();
+
+    if (!WifiConnector::canConnect())
+    {
+        WifiConnector::setup();
+        WifiConnector::show_screen();
+    }
 
     lv_timer_handler();
 
