@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include <lvgl.h>
 #include <WiFi.h>
 #include <Preferences.h>
@@ -8,8 +10,9 @@ static Preferences preferences;
 static bool is_setup_completed = false;
 static lv_obj_t *screen = nullptr;
 static bool is_screen_shown = false;
-static lv_obj_t *input_password = nullptr;
 static lv_obj_t *keyboard = nullptr;
+static lv_obj_t *input_password = nullptr;
+static lv_obj_t *dropdown_ssid = nullptr;
 
 static void textarea_event_cb(lv_event_t *e)
 {
@@ -47,16 +50,9 @@ struct WifiConnector
         auto label_ssid = lv_label_create(screen);
         lv_label_set_text(label_ssid, "SSID:");
 
-        auto dropdown_ssid = lv_dropdown_create(screen);
+        dropdown_ssid = lv_dropdown_create(screen);
         lv_obj_align_to(dropdown_ssid, label_ssid, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
         lv_obj_set_width(dropdown_ssid, lv_pct(100));
-        WiFi.mode(WIFI_STA);
-        auto n = WiFi.scanNetworks();
-        for (int i = 0; i < n; ++i)
-        {
-            lv_dropdown_add_option(dropdown_ssid, WiFi.SSID(i).c_str(), i);
-        }
-        WiFi.scanDelete();
 
         auto label_password = lv_label_create(screen);
         lv_obj_align_to(label_password, dropdown_ssid, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
@@ -81,6 +77,23 @@ struct WifiConnector
             return;
 
         is_screen_shown = true;
+
+        std::string dropdown_options;
+
+        WiFi.mode(WIFI_STA);
+        auto n = WiFi.scanNetworks();
+        for (int i = 0; i < n; ++i)
+        {
+            if (i > 0)
+            {
+                dropdown_options += '\n';
+            }
+
+            dropdown_options += WiFi.SSID(i).c_str();
+        }
+        WiFi.scanDelete();
+
+        lv_dropdown_set_options(dropdown_ssid, dropdown_options.c_str());
 
         lv_screen_load(screen);
     }
