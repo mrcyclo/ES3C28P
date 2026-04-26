@@ -53,7 +53,7 @@ private:
 
         if (!connect())
         {
-            my_info_msgbox("Wifi connect failed!", nullptr, []() {
+            my_error_msgbox("Wifi connect failed!", nullptr, []() {
                 lv_obj_remove_state(button_connect, LV_STATE_DISABLED);
                 lv_obj_remove_state(dropdown_ssid, LV_STATE_DISABLED);
                 lv_obj_remove_state(input_password, LV_STATE_DISABLED);
