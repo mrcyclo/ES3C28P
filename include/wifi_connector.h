@@ -175,8 +175,8 @@ public:
         label_ip = lv_label_create(lv_layer_sys());
         lv_obj_align(label_ip, LV_ALIGN_TOP_RIGHT, 0, 0);
         // lv_obj_set_style_text_color(label_ip, lv_color_hex(0x000000), LV_PART_MAIN);
-        // lv_label_set_text(label_ip, "");
-        show_wifi_status();
+        lv_label_set_text(label_ip, "");
+        // show_wifi_status();
     }
 
     static void loop()
