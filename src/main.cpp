@@ -57,6 +57,7 @@ void setup()
     }
 
     Touch::setup(TFT_ROTATION);
+    WifiConnector::setup();
 
     // Initialize the (dummy) input device driver
     auto indev = lv_indev_create();
@@ -77,14 +78,7 @@ void loop()
 
     lv_timer_handler();
 
-    // if (!WifiConnector::canConnect())
-    // {
-    //     WifiConnector::setup();
-    //     WifiConnector::show_screen();
-    // }
-
-    WifiConnector::setup();
-    WifiConnector::show_screen();
+    WifiConnector::loop();
 
     if (start_time < fps_time + 1000)
     {
