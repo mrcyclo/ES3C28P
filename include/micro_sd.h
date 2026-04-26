@@ -10,7 +10,7 @@
 #define MICRO_SD_MMC_D1 41
 #define MICRO_SD_MMC_D2 48
 #define MICRO_SD_MMC_D3 47
-#define MICRO_SD_MOUNT_POINT "/sd"
+#define MICRO_SD_MOUNT_POINT "/sdcard"
 
 class MicroSDClass
 {

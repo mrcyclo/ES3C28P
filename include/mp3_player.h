@@ -1,6 +1,9 @@
 #pragma once
 
 #include <lvgl.h>
+#include <FS.h>
+#include <vector>
+#include <string>
 #include "micro_sd.h"
 
 class MP3PlayerClass
@@ -8,24 +11,67 @@ class MP3PlayerClass
 private:
     lv_obj_t *screen = nullptr;
     lv_obj_t *label_error = nullptr;
+    bool is_scanned = false;
+    bool is_error = false;
+    std::vector<std::string> files;
 
 public:
     void setup()
     {
-        screen = lv_obj_create(lv_screen_active());
+        screen = lv_obj_create(NULL);
+        lv_obj_set_style_pad_all(screen, 10, LV_PART_MAIN);
 
         label_error = lv_label_create(screen);
-        lv_obj_set_align(label_error, LV_ALIGN_CENTER);
-        lv_label_set_text(label_error, "Error");
+        lv_obj_align(label_error, LV_ALIGN_CENTER, 0, 0);
+        lv_label_set_text(label_error, "Error Text Here");
         lv_obj_add_flag(label_error, LV_OBJ_FLAG_HIDDEN);
     }
 
     void loop()
     {
+        if (is_error)
+        {
+            lv_obj_remove_flag(label_error, LV_OBJ_FLAG_HIDDEN);
+            return;
+        }
+
         if (!MicroSD.is_mounted())
         {
+            is_error = true;
             lv_label_set_text(label_error, "SD Card is not mounted");
-            lv_obj_remove_flag(label_error, LV_OBJ_FLAG_HIDDEN);
+            return;
+        }
+
+        if (!is_scanned)
+        {
+            is_scanned = true;
+
+            auto fs = MicroSD.fs();
+            auto dir = fs.open("/");
+            if (!dir || !dir.isDirectory())
+            {
+                is_error = true;
+                lv_label_set_text(label_error, "SD Card is not a directory");
+                return;
+            }
+
+            for (fs::File f = dir.openNextFile(); f; f = dir.openNextFile())
+            {
+                String name(f.name());
+                name.toLowerCase();
+                if (!f.isDirectory() && f.size() > 0 && name.endsWith(".mp3"))
+                {
+                    files.push_back(f.name());
+                }
+                f.close();
+            }
+            dir.close();
+        }
+
+        if (files.size() == 0)
+        {
+            is_error = true;
+            lv_label_set_text(label_error, "No MP3 files found");
             return;
         }
     }
