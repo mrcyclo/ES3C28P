@@ -4,6 +4,7 @@
 #include "touch.h"
 #include "wifi_connector.h"
 #include "time_sync.h"
+#include "micro_sd.h"
 
 #define TFT_ROTATION LV_DISPLAY_ROTATION_0
 #define TFT_BACKLIGHT_PERCENT 100
@@ -125,6 +126,7 @@ void setup()
 
     Touch::setup(TFT_ROTATION);
     WifiConnector::setup();
+    MicroSD::mount();
 
     // Initialize the (dummy) input device driver
     auto indev = lv_indev_create();
