@@ -5,7 +5,9 @@
 #include "wifi_connector.h"
 
 #define TFT_ROTATION LV_DISPLAY_ROTATION_0
-#define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 1 * (LV_COLOR_DEPTH / 8))
+#define TFT_BACKLIGHT_PERCENT 100
+
+#define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
 
 #define FPS 60
@@ -32,6 +34,66 @@ void lv_touch_read(lv_indev_t *indev, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_PRESSED;
 }
 
+#if defined(TFT_BL) && (TFT_BL >= 0)
+/** Configure TFT backlight pin (TFT_BL) with LEDC PWM from TFT_BACKLIGHT_PERCENT.
+ *  Cấu hình chân đèn nền TFT (TFT_BL) bằng PWM LEDC theo macro TFT_BACKLIGHT_PERCENT.
+ */
+void setup_tft_backlight_pwm(void)
+{
+    const int bl_pct_in = TFT_BACKLIGHT_PERCENT;
+    unsigned bl_pct;
+    if (bl_pct_in < 0)
+        bl_pct = 0u;
+    else if (bl_pct_in > 100)
+        bl_pct = 100u;
+    else
+        bl_pct = (unsigned)bl_pct_in;
+
+    if (bl_pct == 0)
+    {
+        digitalWrite(TFT_BL, TFT_BACKLIGHT_ON == HIGH ? LOW : HIGH);
+        return;
+    }
+
+    if (bl_pct == 100)
+    {
+        digitalWrite(TFT_BL, TFT_BACKLIGHT_ON == HIGH ? HIGH : LOW);
+        return;
+    }
+
+    // PWM carrier frequency; ~20 kHz is usually well above visible flicker.
+    // Tần số sóng mang PWM; ~20 kHz thường cao hơn ngưỡng nháy mắt thấy được.
+    constexpr uint32_t bl_pwm_hz = 20000;
+    // Duty cycle resolution (bits); 8 → duty range 0 … 255.
+    // Độ phân giải duty (bit); 8 bit → giá trị duty từ 0 … 255.
+    constexpr uint8_t bl_pwm_bits = 8;
+    // Top of the duty range for this resolution.
+    // Giá trị duty tối đa ứng với độ phân giải đã chọn.
+    constexpr uint32_t bl_pwm_max = (1u << bl_pwm_bits) - 1u;
+
+    // Linear map of percent to raw duty (before optional polarity flip).
+    // Ánh xạ tuyến tính từ % sang duty thô (trước khi đảo cực nếu có).
+    uint32_t bl_duty = (bl_pwm_max * bl_pct) / 100u;
+#if TFT_BACKLIGHT_ON == LOW
+    // Active-low drive: invert duty so “more percent” still means brighter.
+    // Điều khiển active-low: đảo duty để % càng cao vẫn tương ứng càng sáng.
+    bl_duty = bl_pwm_max - bl_duty;
+#endif
+    // LEDC channel index; pick one not used elsewhere in this sketch.
+    // Chỉ số kênh LEDC; chọn kênh chưa dùng ở chỗ khác trong sketch.
+    constexpr uint8_t bl_ledc_channel = 0;
+    // Configure LEDC timer: channel, frequency, resolution.
+    // Cấu hình bộ định thời LEDC: kênh, tần số, độ phân giải.
+    ledcSetup(bl_ledc_channel, bl_pwm_hz, bl_pwm_bits);
+    // Route TFT_BL GPIO to that LEDC channel.
+    // Gán chân GPIO TFT_BL vào kênh LEDC đó.
+    ledcAttachPin(TFT_BL, bl_ledc_channel);
+    // Apply computed duty to the pin.
+    // Ghi duty đã tính ra chân.
+    ledcWrite(bl_ledc_channel, bl_duty);
+}
+#endif
+
 void setup()
 {
     Serial.begin(115200);
@@ -55,6 +117,10 @@ void setup()
     {
         tft_dsc->tft->invertDisplay(true);
     }
+
+#if defined(TFT_BL) && (TFT_BL >= 0)
+    setup_tft_backlight_pwm();
+#endif
 
     Touch::setup(TFT_ROTATION);
     WifiConnector::setup();
