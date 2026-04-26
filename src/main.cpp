@@ -5,7 +5,7 @@
 #include "wifi_connector.h"
 
 #define TFT_ROTATION LV_DISPLAY_ROTATION_0
-#define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
+#define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 1 * (LV_COLOR_DEPTH / 8))
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
 
 #define FPS 60
@@ -77,11 +77,14 @@ void loop()
 
     lv_timer_handler();
 
-    if (!WifiConnector::canConnect())
-    {
-        WifiConnector::setup();
-        WifiConnector::show_screen();
-    }
+    // if (!WifiConnector::canConnect())
+    // {
+    //     WifiConnector::setup();
+    //     WifiConnector::show_screen();
+    // }
+
+    WifiConnector::setup();
+    WifiConnector::show_screen();
 
     if (start_time < fps_time + 1000)
     {
