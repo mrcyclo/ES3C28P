@@ -75,13 +75,13 @@ void loop()
 {
     const unsigned long start_time = millis();
 
+    lv_timer_handler();
+
     if (!WifiConnector::canConnect())
     {
         WifiConnector::setup();
         WifiConnector::show_screen();
     }
-
-    lv_timer_handler();
 
     if (start_time < fps_time + 1000)
     {
