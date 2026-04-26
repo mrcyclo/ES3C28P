@@ -1,5 +1,6 @@
 #pragma once
 
+#include <TFT_eSPI.h>
 #include "FT6336.h"
 
 #define TOUCH_FT6336
@@ -13,11 +14,6 @@
 #define TOUCH_MAP_Y1 0
 #define TOUCH_MAP_Y2 TFT_HEIGHT
 
-static int touch_last_x = 0, touch_last_y = 0;
-static unsigned short int width = 0, height = 0, rotation, min_x = 0, max_x = 0, min_y = 0, max_y = 0;
-
-static FT6336 ts = FT6336(TOUCH_FT6336_SDA, TOUCH_FT6336_SCL, TOUCH_FT6336_INT, TOUCH_FT6336_RST, max(TOUCH_MAP_X1, TOUCH_MAP_X2), max(TOUCH_MAP_Y1, TOUCH_MAP_Y2));
-
 struct TouchResult
 {
     bool touched;
@@ -25,9 +21,15 @@ struct TouchResult
     uint16_t y;
 };
 
-struct Touch
+class TouchClass
 {
-    static void setup(unsigned char roration)
+private:
+    int touch_last_x = 0, touch_last_y = 0;
+    unsigned short int width = 0, height = 0, min_x = 0, max_x = 0, min_y = 0, max_y = 0;
+    FT6336 ts = FT6336(TOUCH_FT6336_SDA, TOUCH_FT6336_SCL, TOUCH_FT6336_INT, TOUCH_FT6336_RST, max(TOUCH_MAP_X1, TOUCH_MAP_X2), max(TOUCH_MAP_Y1, TOUCH_MAP_Y2));
+
+public:
+    void setup(unsigned char roration)
     {
         switch (roration)
         {
@@ -56,7 +58,7 @@ struct Touch
         ts.setRotation(roration);
     }
 
-    static TouchResult get_touch()
+    TouchResult get_touch()
     {
         ts.read();
 
@@ -73,3 +75,5 @@ struct Touch
         return result;
     }
 };
+
+extern TouchClass Touch;

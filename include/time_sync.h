@@ -13,24 +13,25 @@
 #define TIME_SYNC_TOTAL_TIMEOUT_MS 60000
 #define TIME_SYNC_MIN_VALID_EPOCH 1777234651L
 
-static bool s_synced = false;
-static bool s_abandoned = false;
-static bool s_ntp_configured = false;
-static unsigned long s_ntp_start_ms = 0;
-
-class TimeSync
+class TimeSyncClass
 {
-public:
-    static bool is_synced() { return s_synced; }
+private:
+    bool s_synced = false;
+    bool s_abandoned = false;
+    bool s_ntp_configured = false;
+    unsigned long s_ntp_start_ms = 0;
 
-    static struct tm get_time()
+public:
+    bool is_synced() { return s_synced; }
+
+    struct tm get_time()
     {
         struct tm ti{};
         getLocalTime(&ti, 0);
         return ti;
     }
 
-    static void loop()
+    void loop()
     {
         if (s_synced || s_abandoned)
         {
@@ -56,3 +57,5 @@ public:
         }
     }
 };
+
+extern TimeSyncClass TimeSync;

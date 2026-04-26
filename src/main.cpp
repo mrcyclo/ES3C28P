@@ -5,6 +5,7 @@
 #include "wifi_connector.h"
 #include "time_sync.h"
 #include "micro_sd.h"
+#include "mp3_player.h"
 
 #define TFT_ROTATION LV_DISPLAY_ROTATION_0
 #define TFT_BACKLIGHT_PERCENT 100
@@ -24,7 +25,7 @@ uint32_t lv_tick_source(void)
 
 void lv_touch_read(lv_indev_t *indev, lv_indev_data_t *data)
 {
-    auto t = Touch::get_touch();
+    auto t = Touch.get_touch();
     if (!t.touched)
     {
         data->state = LV_INDEV_STATE_RELEASED;
@@ -124,9 +125,12 @@ void setup()
     setup_tft_backlight_pwm();
 #endif
 
-    Touch::setup(TFT_ROTATION);
-    WifiConnector::setup();
-    MicroSD::mount();
+    Touch.setup(TFT_ROTATION);
+    WifiConnector.setup();
+    MicroSD.mount();
+    MP3Player.setup();
+
+    WifiConnector.set_screen_after_connected(MP3Player.get_screen());
 
     // Initialize the (dummy) input device driver
     auto indev = lv_indev_create();
@@ -147,12 +151,14 @@ void loop()
 
     lv_timer_handler();
 
-    WifiConnector::loop();
+    WifiConnector.loop();
 
-    if (WifiConnector::is_connected())
+    if (WifiConnector.is_connected())
     {
-        TimeSync::loop();
+        TimeSync.loop();
     }
+
+    MP3Player.loop();
 
     if (start_time < fps_time + 1000)
     {
@@ -160,9 +166,9 @@ void loop()
     }
     else
     {
-        if (TimeSync::is_synced())
+        if (TimeSync.is_synced())
         {
-            auto time = TimeSync::get_time();
+            auto time = TimeSync.get_time();
             lv_label_set_text_fmt(lb_fps, "#0077ff %d (%02d:%02d:%02d)#", fps_count, time.tm_hour, time.tm_min, time.tm_sec);
         }
         else

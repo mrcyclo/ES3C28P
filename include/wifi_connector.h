@@ -5,45 +5,29 @@
 #include <string>
 #include <WiFi.h>
 #include "my_msgbox.h"
+#include "helpers.h"
 
 #define ENUM_STATE_READY_TO_CONNECT 0
 #define ENUM_STATE_CONNECTING 1
 #define ENUM_STATE_CONNECTED 2
 
-static uint8_t state = ENUM_STATE_READY_TO_CONNECT;
-static ulong connect_time = 0;
-static ulong connect_timeout = 15000;
-
-static lv_obj_t *screen = nullptr;
-static bool is_screen_shown = false;
-static lv_obj_t *keyboard = nullptr;
-static lv_obj_t *dropdown_ssid = nullptr;
-static lv_obj_t *input_password = nullptr;
-static lv_obj_t *button_connect = nullptr;
-static lv_obj_t *label_ip = nullptr;
-
-class WifiConnector
+class WifiConnectorClass
 {
 private:
-    static void textarea_event_cb(lv_event_t *e)
-    {
-        lv_event_code_t code = lv_event_get_code(e);
-        lv_obj_t *ta = lv_event_get_target_obj(e);
-        lv_obj_t *kb = (lv_obj_t *)lv_event_get_user_data(e);
-        if (code == LV_EVENT_FOCUSED)
-        {
-            lv_keyboard_set_textarea(kb, ta);
-            lv_obj_remove_flag(kb, LV_OBJ_FLAG_HIDDEN);
-        }
+    const ulong connect_timeout = 15000;
+    ulong connect_time = 0;
+    uint8_t state = ENUM_STATE_READY_TO_CONNECT;
 
-        if (code == LV_EVENT_DEFOCUSED)
-        {
-            lv_keyboard_set_textarea(kb, NULL);
-            lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
-        }
-    }
+    bool is_screen_shown = false;
+    lv_obj_t *screen = nullptr;
+    lv_obj_t *keyboard = nullptr;
+    lv_obj_t *dropdown_ssid = nullptr;
+    lv_obj_t *input_password = nullptr;
+    lv_obj_t *button_connect = nullptr;
+    lv_obj_t *label_ip = nullptr;
+    lv_obj_t *screen_after_connected = nullptr;
 
-    static void button_connect_clicked_cb(lv_event_t *e)
+    void button_connect_clicked_cb(lv_event_t *e)
     {
         lv_obj_add_state(button_connect, LV_STATE_DISABLED);
         lv_obj_add_state(dropdown_ssid, LV_STATE_DISABLED);
@@ -66,7 +50,7 @@ private:
      * Có profile STA do stack Wi‑Fi lưu trong NVS (dùng cho `WiFi.begin()` không đối số).
      * Chỉ gọi sau khi đã `WiFi.mode(WIFI_STA)` (ví dụ sau `setup()`).
      */
-    static bool hasDriverStoredStaCredentials()
+    bool hasDriverStoredStaCredentials()
     {
         wifi_config_t cfg{};
         if (esp_wifi_get_config(WIFI_IF_STA, &cfg) != ESP_OK)
@@ -74,7 +58,7 @@ private:
         return cfg.sta.ssid[0] != '\0';
     }
 
-    static void show_screen()
+    void show_screen()
     {
         if (is_screen_shown)
             return;
@@ -99,7 +83,7 @@ private:
         lv_screen_load(screen);
     }
 
-    static void show_wifi_status()
+    void show_wifi_status()
     {
         switch (WiFi.status())
         {
@@ -138,7 +122,7 @@ private:
     }
 
 public:
-    static void setup()
+    void setup()
     {
         WiFi.mode(WIFI_STA);
 
@@ -170,7 +154,7 @@ public:
         lv_obj_set_align(label_connect, LV_ALIGN_CENTER);
         lv_label_set_text(label_connect, "Connect");
         lv_obj_align_to(button_connect, input_password, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
-        lv_obj_add_event_cb(button_connect, button_connect_clicked_cb, LV_EVENT_CLICKED, keyboard);
+        lv_obj_add_event_cb(button_connect, LV_OBJ_EVENT_CB(WifiConnectorClass, button_connect_clicked_cb), LV_EVENT_CLICKED, this);
 
         label_ip = lv_label_create(lv_layer_sys());
         lv_obj_align(label_ip, LV_ALIGN_TOP_RIGHT, 0, 0);
@@ -179,7 +163,7 @@ public:
         // show_wifi_status();
     }
 
-    static void loop()
+    void loop()
     {
         if (!is_screen_shown)
         {
@@ -207,6 +191,12 @@ public:
                     WiFi.setAutoReconnect(true);
                     lv_label_set_text(label_ip, WiFi.localIP().toString().c_str());
                     state = ENUM_STATE_CONNECTED;
+
+                    if (screen_after_connected)
+                    {
+                        lv_screen_load(screen_after_connected);
+                        lv_obj_delete(screen);
+                    }
                 }
                 else if (millis() - connect_time >= connect_timeout)
                 {
@@ -231,12 +221,18 @@ public:
                     lv_label_set_text(label_ip, WiFi.localIP().toString().c_str());
                     my_info_msgbox("Wifi connect success!", nullptr, []() {});
                     state = ENUM_STATE_CONNECTED;
+
+                    if (screen_after_connected)
+                    {
+                        lv_screen_load(screen_after_connected);
+                        lv_obj_delete(screen);
+                    }
                 }
                 else if (millis() - connect_time >= connect_timeout)
                 {
                     WiFi.disconnect();
                     lv_label_set_text(label_ip, "");
-                    my_error_msgbox("Wifi connect failed!", nullptr, []()
+                    my_error_msgbox("Wifi connect failed!", nullptr, [=]()
                                     {
                         lv_obj_remove_state(button_connect, LV_STATE_DISABLED);
                         lv_obj_remove_state(dropdown_ssid, LV_STATE_DISABLED);
@@ -251,8 +247,15 @@ public:
         }
     }
 
-    static bool is_connected()
+    bool is_connected()
     {
         return WiFi.status() == WL_CONNECTED;
     }
+
+    void set_screen_after_connected(lv_obj_t *screen)
+    {
+        screen_after_connected = screen;
+    }
 };
+
+extern WifiConnectorClass WifiConnector;

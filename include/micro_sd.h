@@ -12,13 +12,13 @@
 #define MICRO_SD_MMC_D3 47
 #define MICRO_SD_MOUNT_POINT "/sd"
 
-class MicroSD
+class MicroSDClass
 {
 private:
-    inline static bool s_mounted = false;
+    bool s_mounted = false;
 
 public:
-    static bool mount()
+    bool mount()
     {
         if (s_mounted)
             return true;
@@ -31,7 +31,7 @@ public:
         return true;
     }
 
-    static void unmount()
+    void unmount()
     {
         if (!s_mounted)
             return;
@@ -39,14 +39,16 @@ public:
         s_mounted = false;
     }
 
-    static bool is_mounted() { return s_mounted; }
+    bool is_mounted() { return s_mounted; }
 
-    static fs::FS &fs() { return SD_MMC; }
+    fs::FS &fs() { return SD_MMC; }
 
-    static uint64_t card_size_bytes()
+    uint64_t card_size_bytes()
     {
         if (!s_mounted)
             return 0;
         return SD_MMC.cardSize();
     }
 };
+
+extern MicroSDClass MicroSD;
