@@ -11,7 +11,7 @@
 #define TIME_SYNC_NTP_SERVER_3 "time.cloudflare.com"
 #define TIME_SYNC_POLL_SLICE_MS 200
 #define TIME_SYNC_TOTAL_TIMEOUT_MS 60000
-#define TIME_SYNC_MIN_VALID_EPOCH __TIMESTAMP__
+#define TIME_SYNC_MIN_VALID_EPOCH 1777234651L
 
 static bool s_synced = false;
 static bool s_abandoned = false;
