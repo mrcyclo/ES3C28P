@@ -3,6 +3,7 @@
 #include <lvgl.h>
 #include "touch.h"
 #include "wifi_connector.h"
+#include "time_sync.h"
 
 #define TFT_ROTATION LV_DISPLAY_ROTATION_0
 #define TFT_BACKLIGHT_PERCENT 100
@@ -145,6 +146,7 @@ void loop()
     lv_timer_handler();
 
     WifiConnector::loop();
+    TimeSync::loop();
 
     if (start_time < fps_time + 1000)
     {
@@ -152,7 +154,16 @@ void loop()
     }
     else
     {
-        lv_label_set_text_fmt(lb_fps, "#0077ff %d (%d)#", fps_count, start_time);
+        if (TimeSync::is_synced())
+        {
+            auto time = TimeSync::get_time();
+            lv_label_set_text_fmt(lb_fps, "#0077ff %d (%02d:%02d:%02d)#", fps_count, time.tm_hour, time.tm_min, time.tm_sec);
+        }
+        else
+        {
+            lv_label_set_text_fmt(lb_fps, "#0077ff %d (%d)#", fps_count, start_time / 1000);
+        }
+
         fps_count = 1;
         fps_time = start_time;
     }
