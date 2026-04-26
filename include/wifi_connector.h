@@ -250,4 +250,9 @@ public:
             }
         }
     }
+
+    static bool is_connected()
+    {
+        return WiFi.status() == WL_CONNECTED;
+    }
 };

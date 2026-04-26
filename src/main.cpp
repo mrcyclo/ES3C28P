@@ -146,7 +146,11 @@ void loop()
     lv_timer_handler();
 
     WifiConnector::loop();
-    TimeSync::loop();
+
+    if (WifiConnector::is_connected())
+    {
+        TimeSync::loop();
+    }
 
     if (start_time < fps_time + 1000)
     {
