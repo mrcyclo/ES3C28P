@@ -1,6 +1,6 @@
 #pragma once
 
-#define FPS 60
+#include "config.h"
 
 class FpsClass
 {

@@ -9,6 +9,7 @@
 #include "micro_sd.h"
 #include "helpers.h"
 #include "my_msgbox.h"
+#include "config.h"
 
 class StatusBarClass
 {
@@ -29,7 +30,7 @@ public:
     {
         auto box = lv_obj_create(lv_layer_sys());
         lv_obj_align(box, LV_ALIGN_TOP_MID, 0, 0);
-        lv_obj_set_size(box, lv_pct(100), 20);
+        lv_obj_set_size(box, lv_pct(100), STATUS_BAR_HEIGHT);
         lv_obj_set_style_bg_color(box, lv_color_black(), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(box, LV_OPA_80, LV_PART_MAIN);
         lv_obj_set_style_radius(box, 0, LV_PART_MAIN);

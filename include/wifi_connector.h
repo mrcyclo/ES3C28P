@@ -6,6 +6,7 @@
 #include <WiFi.h>
 #include "my_msgbox.h"
 #include "helpers.h"
+#include "config.h"
 
 #define ENUM_STATE_READY_TO_CONNECT 0
 #define ENUM_STATE_CONNECTING 1
@@ -126,6 +127,7 @@ public:
 
         screen = lv_obj_create(NULL);
         lv_obj_set_style_pad_all(screen, 10, LV_PART_MAIN);
+        lv_obj_set_style_pad_top(screen, STATUS_BAR_HEIGHT + 10, LV_PART_MAIN);
 
         keyboard = lv_keyboard_create(lv_layer_top());
         lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
