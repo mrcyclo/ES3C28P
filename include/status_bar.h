@@ -24,7 +24,8 @@ public:
         lv_obj_set_style_bg_opa(box, LV_OPA_80, LV_PART_MAIN);
         lv_obj_set_style_radius(box, 0, LV_PART_MAIN);
         lv_obj_set_style_border_width(box, 0, LV_PART_MAIN);
-        lv_obj_set_style_pad_all(box, 2, LV_PART_MAIN);
+        lv_obj_set_style_pad_ver(box, 0, LV_PART_MAIN);
+        lv_obj_set_style_pad_hor(box, 4, LV_PART_MAIN);
         lv_obj_remove_flag(box, LV_OBJ_FLAG_SCROLLABLE);
 
         lb_left = lv_label_create(box);
