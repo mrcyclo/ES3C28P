@@ -25,6 +25,7 @@
 #include "wifi_connector.h"
 #include "time_sync.h"
 #include "micro_sd.h"
+#include "status_bar.h"
 #include "mp3_player.h"
 
 #define TFT_ROTATION LV_DISPLAY_ROTATION_0
@@ -154,6 +155,8 @@ void setup()
     // WifiConnector.set_screen_after_connected(MP3Player.get_screen());
     WifiConnector.set_screen_after_connected(lv_screen_active());
 
+    StatusBar.setup();
+
     // Initialize the (dummy) input device driver
     auto indev = lv_indev_create();
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
@@ -163,11 +166,6 @@ void setup()
     lv_obj_align(lb_fps, LV_ALIGN_TOP_LEFT, 0, 0);
     lv_label_set_recolor(lb_fps, true);
     lv_label_set_text(lb_fps, "0");
-
-    auto lb_test = lv_label_create(lv_screen_active());
-    lv_obj_align(lb_test, LV_ALIGN_CENTER, 0, 0);
-    lv_label_set_recolor(lb_test, true);
-    lv_label_set_text(lb_test, "#ff0000 Tiếng Việt!# #0077ff \xEF\x87\xAB#");
 
     Serial.println("[Setup] End setup");
 }
@@ -184,6 +182,8 @@ void loop()
     {
         TimeSync.loop();
     }
+
+    StatusBar.loop();
 
     MP3Player.loop();
 

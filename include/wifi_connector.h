@@ -24,7 +24,6 @@ private:
     lv_obj_t *dropdown_ssid = nullptr;
     lv_obj_t *input_password = nullptr;
     lv_obj_t *button_connect = nullptr;
-    lv_obj_t *label_ip = nullptr;
     lv_obj_t *screen_after_connected = nullptr;
 
     void button_connect_clicked_cb(lv_event_t *e)
@@ -42,7 +41,6 @@ private:
         WiFi.begin(ssid, passpharse);
         connect_time = millis();
 
-        lv_label_set_text(label_ip, "Connecting");
         state = ENUM_STATE_CONNECTING;
     }
 
@@ -83,43 +81,43 @@ private:
         lv_screen_load(screen);
     }
 
-    void show_wifi_status()
-    {
-        switch (WiFi.status())
-        {
-        case WL_IDLE_STATUS:
-            lv_label_set_text(label_ip, "IDLE_STATUS");
-            break;
+    // void show_wifi_status()
+    // {
+    //     switch (WiFi.status())
+    //     {
+    //     case WL_IDLE_STATUS:
+    //         lv_label_set_text(label_ip, "IDLE_STATUS");
+    //         break;
 
-        case WL_NO_SSID_AVAIL:
-            lv_label_set_text(label_ip, "NO_SSID_AVAIL");
-            break;
+    //     case WL_NO_SSID_AVAIL:
+    //         lv_label_set_text(label_ip, "NO_SSID_AVAIL");
+    //         break;
 
-        case WL_SCAN_COMPLETED:
-            lv_label_set_text(label_ip, "SCAN_COMPLETED");
-            break;
+    //     case WL_SCAN_COMPLETED:
+    //         lv_label_set_text(label_ip, "SCAN_COMPLETED");
+    //         break;
 
-        case WL_CONNECTED:
-            lv_label_set_text(label_ip, "CONNECTED");
-            break;
+    //     case WL_CONNECTED:
+    //         lv_label_set_text(label_ip, "CONNECTED");
+    //         break;
 
-        case WL_CONNECT_FAILED:
-            lv_label_set_text(label_ip, "CONNECT_FAILED");
-            break;
+    //     case WL_CONNECT_FAILED:
+    //         lv_label_set_text(label_ip, "CONNECT_FAILED");
+    //         break;
 
-        case WL_CONNECTION_LOST:
-            lv_label_set_text(label_ip, "CONNECTION_LOST");
-            break;
+    //     case WL_CONNECTION_LOST:
+    //         lv_label_set_text(label_ip, "CONNECTION_LOST");
+    //         break;
 
-        case WL_DISCONNECTED:
-            lv_label_set_text(label_ip, "DISCONNECTED");
-            break;
+    //     case WL_DISCONNECTED:
+    //         lv_label_set_text(label_ip, "DISCONNECTED");
+    //         break;
 
-        default:
-            lv_label_set_text_fmt(label_ip, "Status: %d", WiFi.status());
-            break;
-        }
-    }
+    //     default:
+    //         lv_label_set_text_fmt(label_ip, "Status: %d", WiFi.status());
+    //         break;
+    //     }
+    // }
 
 public:
     void setup()
@@ -155,12 +153,6 @@ public:
         lv_label_set_text(label_connect, "Connect");
         lv_obj_align_to(button_connect, input_password, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
         lv_obj_add_event_cb(button_connect, LV_OBJ_EVENT_CB(WifiConnectorClass, button_connect_clicked_cb), LV_EVENT_CLICKED, this);
-
-        label_ip = lv_label_create(lv_layer_sys());
-        lv_obj_align(label_ip, LV_ALIGN_TOP_RIGHT, 0, 0);
-        // lv_obj_set_style_text_color(label_ip, lv_color_hex(0x000000), LV_PART_MAIN);
-        lv_label_set_text(label_ip, "");
-        // show_wifi_status();
     }
 
     void loop()
@@ -172,14 +164,12 @@ public:
                 if (hasDriverStoredStaCredentials())
                 {
                     WiFi.begin();
-                    lv_label_set_text(label_ip, "Connecting");
                     connect_time = millis();
                     state = ENUM_STATE_CONNECTING;
                 }
                 else
                 {
                     show_screen();
-                    lv_label_set_text(label_ip, "");
                     state = ENUM_STATE_READY_TO_CONNECT;
                 }
             }
@@ -189,7 +179,6 @@ public:
                 if (WiFi.status() == WL_CONNECTED)
                 {
                     WiFi.setAutoReconnect(true);
-                    lv_label_set_text(label_ip, WiFi.localIP().toString().c_str());
                     state = ENUM_STATE_CONNECTED;
 
                     if (screen_after_connected)
@@ -202,7 +191,6 @@ public:
                 {
                     WiFi.disconnect();
                     show_screen();
-                    lv_label_set_text(label_ip, "");
                     state = ENUM_STATE_READY_TO_CONNECT;
                 }
                 else
@@ -218,7 +206,6 @@ public:
                 if (WiFi.status() == WL_CONNECTED)
                 {
                     WiFi.setAutoReconnect(true);
-                    lv_label_set_text(label_ip, WiFi.localIP().toString().c_str());
                     my_info_msgbox("Wifi connect success!", nullptr, []() {});
                     state = ENUM_STATE_CONNECTED;
 
@@ -231,7 +218,6 @@ public:
                 else if (millis() - connect_time >= connect_timeout)
                 {
                     WiFi.disconnect();
-                    lv_label_set_text(label_ip, "");
                     my_error_msgbox("Wifi connect failed!", nullptr, [=]()
                                     {
                         lv_obj_remove_state(button_connect, LV_STATE_DISABLED);
