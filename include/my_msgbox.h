@@ -6,12 +6,18 @@
 
 static lv_obj_t *msgbox = nullptr;
 static lv_obj_t *msgbox_overlay = nullptr;
+static std::function<void()> *active_msgbox_callback = nullptr;
 
 static void ok_btn_event_cb(lv_event_t *e)
 {
-    lv_msgbox_close(msgbox);
-    lv_obj_delete(msgbox);
-    msgbox = nullptr;
+    (void)e;
+
+    if (msgbox)
+    {
+        lv_msgbox_close(msgbox);
+        lv_obj_delete(msgbox);
+        msgbox = nullptr;
+    }
 
     if (msgbox_overlay)
     {
@@ -19,11 +25,36 @@ static void ok_btn_event_cb(lv_event_t *e)
         msgbox_overlay = nullptr;
     }
 
-    auto *fn = static_cast<std::function<void()> *>(lv_event_get_user_data(e));
-    if (fn)
+    if (active_msgbox_callback)
     {
-        (*fn)();
-        delete fn;
+        (*active_msgbox_callback)();
+        delete active_msgbox_callback;
+        active_msgbox_callback = nullptr;
+    }
+}
+
+static void dismiss_existing_msgbox_silent()
+{
+    if (!msgbox && !msgbox_overlay)
+        return;
+
+    if (active_msgbox_callback)
+    {
+        delete active_msgbox_callback;
+        active_msgbox_callback = nullptr;
+    }
+
+    if (msgbox)
+    {
+        lv_msgbox_close(msgbox);
+        lv_obj_delete(msgbox);
+        msgbox = nullptr;
+    }
+
+    if (msgbox_overlay)
+    {
+        lv_obj_delete(msgbox_overlay);
+        msgbox_overlay = nullptr;
     }
 }
 
@@ -53,7 +84,10 @@ static void create_msgbox_overlay()
 template <typename Fn>
 inline void my_info_msgbox(const char *text, const char *title, Fn &&fn)
 {
-    auto *stored = new std::function<void()>(std::forward<Fn>(fn));
+    dismiss_existing_msgbox_silent();
+
+    auto *callback = new std::function<void()>(std::forward<Fn>(fn));
+    active_msgbox_callback = callback;
 
     msgbox = lv_msgbox_create(lv_layer_top());
     lv_obj_set_width(msgbox, lv_pct(90));
@@ -63,7 +97,7 @@ inline void my_info_msgbox(const char *text, const char *title, Fn &&fn)
     lv_obj_set_style_border_color(msgbox, lv_color_hex(0x0291d5), LV_PART_MAIN);
 
     lv_obj_t *btn_ok = lv_msgbox_add_footer_button(msgbox, "OK");
-    lv_obj_add_event_cb(btn_ok, ok_btn_event_cb, LV_EVENT_CLICKED, stored);
+    lv_obj_add_event_cb(btn_ok, ok_btn_event_cb, LV_EVENT_CLICKED, nullptr);
 
     create_msgbox_overlay();
 }
@@ -71,7 +105,10 @@ inline void my_info_msgbox(const char *text, const char *title, Fn &&fn)
 template <typename Fn>
 inline void my_error_msgbox(const char *text, const char *title, Fn &&fn)
 {
-    auto *stored = new std::function<void()>(std::forward<Fn>(fn));
+    dismiss_existing_msgbox_silent();
+
+    auto *callback = new std::function<void()>(std::forward<Fn>(fn));
+    active_msgbox_callback = callback;
 
     msgbox = lv_msgbox_create(lv_layer_top());
     lv_obj_set_width(msgbox, lv_pct(90));
@@ -81,7 +118,7 @@ inline void my_error_msgbox(const char *text, const char *title, Fn &&fn)
     lv_obj_set_style_border_color(msgbox, lv_color_hex(0xac3e31), LV_PART_MAIN);
 
     lv_obj_t *btn_ok = lv_msgbox_add_footer_button(msgbox, "OK");
-    lv_obj_add_event_cb(btn_ok, ok_btn_event_cb, LV_EVENT_CLICKED, stored);
+    lv_obj_add_event_cb(btn_ok, ok_btn_event_cb, LV_EVENT_CLICKED, nullptr);
 
     create_msgbox_overlay();
 }
