@@ -139,6 +139,16 @@ Tóm tắt nhanh SPI LCD: **SCK=IO12, MOSI=IO11, MISO=IO13, CS=IO10, DC=IO46, RS
 | **IO7** | LR / channel select | **WS** hay **LRCK** | **Cao** = kênh phải, **thấp** = kênh trái (theo wiki) |
 | **IO8** | I2S data in | **DIN** (mic → ESP) | Thu âm vào |
 
+**Codec (ES8311):** Đường âm thanh phát ra loa đi qua **codec ES8311** (điều khiển qua **I2C**) và khuếch đại (datasheet wiki thường nêu **FM8002E**). Phần sóng đi vào DAC vẫn **cần MCU cấu hình thanh ghi codec qua I2C** — riêng xung I2S không thay được bước đó.
+
+| Mục | Giá trị / ghi chú |
+| --- | --- |
+| Chip | **ES8311** |
+| Địa chỉ I2C (7-bit) | **0x18** (tra schematic/manual nếu có nhảy CE) |
+| Bus I2C | **Chung với cảm ứng:** SDA **IO16**, SCL **IO15** — mỗi thiết bị một địa chỉ (touch FT6336 thường **0x38**) |
+| Dữ liệu âm thanh | **I2S** qua MCLK/BCLK/WS/DOUT (và DIN khi thu mic), bả GPIO ở trên |
+| PA / loa | **IO1** — wiki: **mức thấp = bật** khuếch đại |
+
 ### Serial, pin, LED, nút
 
 | GPIO / chân | Chức năng |
