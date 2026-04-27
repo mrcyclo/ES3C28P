@@ -120,6 +120,7 @@ void setup_tft_backlight_pwm(void)
 void setup()
 {
     Serial.begin(115200);
+    delay(2500); // Allow time for Serial to initialize
 
     Serial.println("[Setup] Begin setup");
 
