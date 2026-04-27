@@ -40,9 +40,9 @@ static void create_msgbox_overlay()
     lv_obj_set_align(msgbox_overlay, LV_ALIGN_CENTER);
     lv_obj_add_flag(msgbox_overlay, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_style_bg_color(msgbox_overlay, lv_color_black(), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(msgbox_overlay, 25, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(msgbox_overlay, LV_OPA_50, LV_PART_MAIN);
+    lv_obj_set_style_radius(msgbox_overlay, 0, LV_PART_MAIN);
     lv_obj_set_style_border_width(msgbox_overlay, 0, LV_PART_MAIN);
-    lv_obj_set_style_blur_radius(msgbox_overlay, 20, LV_PART_MAIN);
     lv_obj_move_background(msgbox_overlay);
 }
 
