@@ -1,4 +1,24 @@
 #include <Arduino.h>
+/*
+ * Why FS.h must come before TFT_eSPI / Vì sao FS.h phải đứng trước TFT_eSPI
+ *
+ * EN:
+ *   - TFT_eSPI can pull in FS.h with FS_NO_GLOBALS (e.g. SMOOTH_FONT).
+ *     Then only fs::File exists — no global "File".
+ *   - FS.h is include-guarded; the first include wins for the whole build unit.
+ *   - If that first include was with FS_NO_GLOBALS, ESP32-audioI2S (Audio.h)
+ *     fails: 'File' undeclared.
+ *   - Including FS.h here first applies the normal global aliases before TFT.
+ *
+ * VI:
+ *   - TFT_eSPI có thể include FS.h khi đã bật FS_NO_GLOBALS (vd. SMOOTH_FONT),
+ *     lúc đó chỉ có fs::File, không có tên File ở global.
+ *   - FS.h chỉ được parse một lần (include guard); lần đầu quyết định hết.
+ *   - Nếu lần đầu là với FS_NO_GLOBALS thì thư viện audio (Audio.h) lỗi không
+ *     nhận ra File.
+ *   - Include FS.h ở đây trước để alias global được áp dụng trước khi TFT load.
+ */
+#include <FS.h>
 #include <TFT_eSPI.h>
 #include <lvgl.h>
 #include "touch.h"
