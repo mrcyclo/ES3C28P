@@ -57,7 +57,7 @@ inline void my_info_msgbox(const char *text, const char *title, Fn &&fn)
 
     msgbox = lv_msgbox_create(lv_layer_top());
     lv_obj_set_width(msgbox, lv_pct(90));
-    lv_msgbox_add_title(msgbox, "Infomation");
+    lv_msgbox_add_title(msgbox, title ? title : "Infomation");
     lv_msgbox_add_text(msgbox, text);
     lv_obj_set_style_bg_color(lv_msgbox_get_header(msgbox), lv_color_hex(0x0291d5), LV_PART_MAIN);
     lv_obj_set_style_border_color(msgbox, lv_color_hex(0x0291d5), LV_PART_MAIN);
@@ -75,7 +75,7 @@ inline void my_error_msgbox(const char *text, const char *title, Fn &&fn)
 
     msgbox = lv_msgbox_create(lv_layer_top());
     lv_obj_set_width(msgbox, lv_pct(90));
-    lv_msgbox_add_title(msgbox, "Error");
+    lv_msgbox_add_title(msgbox, title ? title : "Error");
     lv_msgbox_add_text(msgbox, text);
     lv_obj_set_style_bg_color(lv_msgbox_get_header(msgbox), lv_color_hex(0xac3e31), LV_PART_MAIN);
     lv_obj_set_style_border_color(msgbox, lv_color_hex(0xac3e31), LV_PART_MAIN);

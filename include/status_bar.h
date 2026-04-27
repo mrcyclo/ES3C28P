@@ -8,12 +8,21 @@
 #include "time_sync.h"
 #include "micro_sd.h"
 #include "helpers.h"
+#include "my_msgbox.h"
 
 class StatusBarClass
 {
 private:
     lv_obj_t *lb_left = nullptr;
     lv_obj_t *lb_right = nullptr;
+    std::string msgbox_text = "";
+
+    void status_bar_right_clicked_cb(lv_event_t *e)
+    {
+        if (msgbox_text.empty())
+            return;
+        my_info_msgbox(msgbox_text.c_str(), "Thông tin", []() {});
+    }
 
 public:
     void setup()
@@ -38,6 +47,8 @@ public:
         lv_obj_align(lb_right, LV_ALIGN_RIGHT_MID, 0, 0);
         lv_label_set_recolor(lb_right, true);
         lv_label_set_text(lb_right, "");
+        lv_obj_add_flag(lb_right, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(lb_right, LV_OBJ_EVENT_CB(StatusBarClass, status_bar_right_clicked_cb), LV_EVENT_CLICKED, this);
     }
 
     void loop()
@@ -85,6 +96,10 @@ public:
             right_text += right_statuses[i];
         }
         lv_label_set_text(lb_right, right_text.c_str());
+
+        // Update msgbox text
+        msgbox_text = std::string("IP: ") + (WifiConnector.is_connected() ? WiFi.localIP().toString().c_str() : "Not connected");
+        msgbox_text += "\nUptime: " + std::to_string(millis() / 1000) + "s";
     }
 };
 
