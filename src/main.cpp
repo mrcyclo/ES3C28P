@@ -26,6 +26,7 @@
 #include "time_sync.h"
 #include "micro_sd.h"
 #include "status_bar.h"
+#include "fps.h"
 #include "mp3_player.h"
 
 #define TFT_ROTATION LV_DISPLAY_ROTATION_0
@@ -33,11 +34,6 @@
 
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
-
-#define FPS 60
-lv_obj_t *lb_fps = nullptr;
-unsigned long fps_count = 0;
-unsigned long fps_time = 0;
 
 uint32_t lv_tick_source(void)
 {
@@ -162,11 +158,6 @@ void setup()
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev, lv_touch_read);
 
-    lb_fps = lv_label_create(lv_layer_sys());
-    lv_obj_align(lb_fps, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_label_set_recolor(lb_fps, true);
-    lv_label_set_text(lb_fps, "0");
-
     Serial.println("[Setup] End setup");
 }
 
@@ -176,6 +167,8 @@ void loop()
 
     lv_timer_handler();
 
+    StatusBar.loop();
+    Fps.loop(start_time);
     WifiConnector.loop();
 
     if (WifiConnector.is_connected())
@@ -183,29 +176,7 @@ void loop()
         TimeSync.loop();
     }
 
-    StatusBar.loop();
-
     MP3Player.loop();
-
-    if (start_time < fps_time + 1000)
-    {
-        fps_count++;
-    }
-    else
-    {
-        if (TimeSync.is_synced())
-        {
-            auto time = TimeSync.get_time();
-            lv_label_set_text_fmt(lb_fps, "#0077ff %d (%02d:%02d:%02d)#", fps_count, time.tm_hour, time.tm_min, time.tm_sec);
-        }
-        else
-        {
-            lv_label_set_text_fmt(lb_fps, "#0077ff %d (%d)#", fps_count, start_time / 1000);
-        }
-
-        fps_count = 1;
-        fps_time = start_time;
-    }
 
     const unsigned long process_time = millis() - start_time;
     if (process_time >= 1000 / FPS)

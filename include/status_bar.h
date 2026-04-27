@@ -3,6 +3,7 @@
 #include <lvgl.h>
 #include <string>
 #include <vector>
+#include "fps.h"
 #include "wifi_connector.h"
 #include "time_sync.h"
 #include "micro_sd.h"
@@ -41,6 +42,21 @@ public:
 
     void loop()
     {
+        // Build left status parts
+        std::vector<std::string> left_statuses;
+
+        left_statuses.push_back("#ffffff " + std::to_string(Fps.get_fps()) + "#");
+
+        std::string left_text;
+        for (size_t i = 0; i < left_statuses.size(); ++i)
+        {
+            if (i > 0)
+                left_text += ' ';
+            left_text += left_statuses[i];
+        }
+        lv_label_set_text(lb_left, left_text.c_str());
+
+        // Build right status parts
         std::vector<std::string> right_statuses;
 
         if (MicroSD.is_mounted())
