@@ -21,16 +21,14 @@
 #include <FS.h>
 #include <TFT_eSPI.h>
 #include <lvgl.h>
+#include "config.h"
 #include "touch.h"
 #include "wifi_connector.h"
 #include "time_sync.h"
 #include "micro_sd.h"
 #include "status_bar.h"
 #include "fps.h"
-#include "mp3_player.h"
-
-#define TFT_ROTATION LV_DISPLAY_ROTATION_0
-#define TFT_BACKLIGHT_PERCENT 100
+#include "vnindex.h"
 
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
@@ -146,10 +144,9 @@ void setup()
     Touch.setup(TFT_ROTATION);
     WifiConnector.setup();
     MicroSD.mount();
-    MP3Player.setup();
+    VnIndex.setup();
 
-    // WifiConnector.set_screen_after_connected(MP3Player.get_screen());
-    WifiConnector.set_screen_after_connected(lv_screen_active());
+    WifiConnector.set_screen_after_connected(VnIndex.get_screen());
 
     StatusBar.setup();
 
@@ -174,9 +171,8 @@ void loop()
     if (WifiConnector.is_connected())
     {
         TimeSync.loop();
+        VnIndex.loop();
     }
-
-    MP3Player.loop();
 
     const unsigned long process_time = millis() - start_time;
     if (process_time >= 1000 / FPS)
