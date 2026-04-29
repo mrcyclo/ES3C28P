@@ -52,7 +52,7 @@ public:
         lv_obj_add_event_cb(lb_right, LV_OBJ_EVENT_CB(StatusBarClass, status_bar_right_clicked_cb), LV_EVENT_CLICKED, this);
     }
 
-    void loop()
+    void loop_ui()
     {
         // Build left status parts
         std::vector<std::string> left_statuses;

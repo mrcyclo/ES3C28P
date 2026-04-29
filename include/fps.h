@@ -10,7 +10,7 @@ private:
     unsigned long fps_time = 0;
 
 public:
-    void loop(unsigned long start_time)
+    void loop_ui(unsigned long start_time)
     {
         if (start_time < fps_time + 1000)
         {
