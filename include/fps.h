@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Arduino.h>
 #include "config.h"
 
 class FpsClass
@@ -10,8 +11,9 @@ private:
     unsigned long fps_time = 0;
 
 public:
-    void loop_ui(unsigned long start_time)
+    void loop_ui()
     {
+        const unsigned long start_time = millis();
         if (start_time < fps_time + 1000)
         {
             fps_count++;
