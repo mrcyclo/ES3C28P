@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <FS.h>
 #include <SD_MMC.h>
+#include <lvgl.h>
 
 #define MICRO_SD_MMC_CLK 38
 #define MICRO_SD_MMC_CMD 40
@@ -18,37 +19,17 @@ private:
     bool s_mounted = false;
 
 public:
-    bool mount()
-    {
-        if (s_mounted)
-            return true;
+    bool mount();
+    void unmount();
+    bool is_mounted();
+    fs::FS &fs();
+    uint64_t card_size_bytes();
 
-        SD_MMC.setPins(MICRO_SD_MMC_CLK, MICRO_SD_MMC_CMD, MICRO_SD_MMC_D0, MICRO_SD_MMC_D1, MICRO_SD_MMC_D2, MICRO_SD_MMC_D3);
-        if (!SD_MMC.begin(MICRO_SD_MOUNT_POINT, false, false))
-            return false;
-
-        s_mounted = true;
-        return true;
-    }
-
-    void unmount()
-    {
-        if (!s_mounted)
-            return;
-        SD_MMC.end();
-        s_mounted = false;
-    }
-
-    bool is_mounted() { return s_mounted; }
-
-    fs::FS &fs() { return SD_MMC; }
-
-    uint64_t card_size_bytes()
-    {
-        if (!s_mounted)
-            return 0;
-        return SD_MMC.cardSize();
-    }
+    /** Read an uncompressed 24-bit BMP from SD and convert to RGB565 buffer.
+     *  - **Allocates** `*out_pixels` (prefer PSRAM) that the caller must free with `heap_caps_free()`.
+     *  - Fills `out_dsc` to reference that buffer, suitable for `lv_image_set_src(obj, out_dsc)`.
+     */
+    bool lv_read_bmp_dsc_rgb565(const char *path, lv_image_dsc_t *out_dsc, uint16_t **out_pixels);
 };
 
 extern MicroSDClass MicroSD;

@@ -8,6 +8,8 @@
 #include "status_bar.h"
 #include "led.h"
 #include "touch.h"
+#include "micro_sd.h"
+#include "home.h"
 
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
@@ -108,10 +110,10 @@ void LvglTask(void *parameter)
     {
         Fps.loop_ui();
         StatusBar.loop_ui();
+        Home.loop_ui();
 
         lv_timer_handler();
 
-        // Serial.printf("BlinkTask running on core: %d\n", xPortGetCoreID());
         // Serial.printf("Task Stack Free: %u bytes\n", uxTaskGetStackHighWaterMark(NULL));
 
         // --- Cập nhật mốc thời gian frame kế (next_frame_deadline_us) + bù phần dư chia số nguyên ---
@@ -222,10 +224,15 @@ void setup()
     StatusBar.setup();
     Led.setup();
 
+    MicroSD.mount();
+
+    Home.setup();
+    lv_scr_load(Home.get_screen());
+
     xTaskCreatePinnedToCore(
         LvglTask,             // Task function
         "LvglTask",           // Task name
-        5000,                 // Stack size (bytes)
+        10000,                // Stack size (bytes)
         NULL,                 // Parameters
         configMAX_PRIORITIES, // Priority
         nullptr,              // Task handle
