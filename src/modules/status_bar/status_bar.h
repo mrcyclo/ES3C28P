@@ -54,9 +54,6 @@ public:
             right_text += right_statuses[i];
         }
         lv_label_set_text(lb_right, right_text.c_str());
-
-        msgbox_text = std::string("IP: ") + (WifiConnector.is_connected() ? WiFi.localIP().toString().c_str() : "Not connected");
-        msgbox_text += "\nUptime: " + std::to_string(millis() / 1000) + "s";
     }
 
     void loop() override {}
@@ -84,21 +81,11 @@ protected:
         lv_obj_align(lb_right, LV_ALIGN_RIGHT_MID, 0, 0);
         lv_label_set_recolor(lb_right, true);
         lv_label_set_text(lb_right, "");
-        lv_obj_add_flag(lb_right, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_add_event_cb(lb_right, LV_OBJ_EVENT_CB(StatusBarClass, right_clicked_cb), LV_EVENT_CLICKED, this);
     }
 
 private:
     lv_obj_t *lb_left = nullptr;
     lv_obj_t *lb_right = nullptr;
-    std::string msgbox_text;
-
-    void right_clicked_cb()
-    {
-        if (msgbox_text.empty())
-            return;
-        MsgBox.info(msgbox_text.c_str(), "Thông tin", []() {});
-    }
 };
 
 extern StatusBarClass StatusBar;
