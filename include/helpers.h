@@ -6,7 +6,9 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 
-#define LV_OBJ_EVENT_CB(Class, Method) [](lv_event_t *e) { static_cast<Class *>(lv_event_get_user_data(e))->Method(e); }
+#define LV_OBJ_EVENT_CB(Class, Method) [](lv_event_t *e) { static_cast<Class *>(lv_event_get_user_data(e))->Method(); }
+
+#define FREERTOS_TASK_CB(Class, Method) [](void *parameter) { static_cast<Class *>(parameter)->Method(); }
 
 static void textarea_event_cb(lv_event_t *e)
 {

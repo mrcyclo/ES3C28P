@@ -6,18 +6,6 @@
 #include "helpers.h"
 #include "led.h"
 
-namespace
-{
-    void led_rainbow_task(void *parameter)
-    {
-        while (true)
-        {
-            Led.rainbow_update(256); // đổi số để nhanh/chậm
-            vTaskDelay(pdMS_TO_TICKS(20));
-        }
-    }
-}
-
 class HomeClass
 {
 private:
@@ -30,12 +18,23 @@ private:
     bool led_enabled = false;
     TaskHandle_t led_rainbow_handle = NULL;
 
-    void home_led_clicked_cb(lv_event_t *e)
+    void led_rainbow_task()
+    {
+        while (true)
+        {
+            if (led_enabled)
+                Led.rainbow_update(256); // đổi số để nhanh/chậm
+            vTaskDelay(pdMS_TO_TICKS(20));
+        }
+    }
+
+    void home_led_clicked_cb()
     {
         lv_obj_add_state(button_led, LV_STATE_DISABLED);
 
         if (led_enabled)
         {
+            Serial.println("[Home] Turn off LED rainbow");
             vTaskDelete(led_rainbow_handle);
             Led.set_color(0, 0, 0);
             lv_obj_remove_local_style_prop(button_led, LV_STYLE_BG_COLOR, LV_PART_MAIN);
@@ -43,14 +42,15 @@ private:
         }
         else
         {
+            Serial.println("[Home] Turn on LED rainbow");
             xTaskCreatePinnedToCore(
-                led_rainbow_task,    // Task function
-                "led_rainbow_task",  // Task name
-                2000,                // Stack size (bytes)
-                NULL,                // Parameters
-                0,                   // Priority
-                &led_rainbow_handle, // Task handle
-                1                    // Core 1
+                FREERTOS_TASK_CB(HomeClass, led_rainbow_task), // Task function
+                "led_rainbow_task",                            // Task name
+                2000,                                          // Stack size (bytes)
+                this,                                          // Parameters
+                1,                                             // Priority
+                &led_rainbow_handle,                           // Task handle
+                1                                              // Core 1
             );
             lv_obj_set_style_bg_color(button_led, lv_color_hex(0xac3e31), LV_PART_MAIN);
             led_enabled = true;

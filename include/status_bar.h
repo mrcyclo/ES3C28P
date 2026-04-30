@@ -18,7 +18,7 @@ private:
     lv_obj_t *lb_right = nullptr;
     std::string msgbox_text = "";
 
-    void status_bar_right_clicked_cb(lv_event_t *e)
+    void status_bar_right_clicked_cb()
     {
         if (msgbox_text.empty())
             return;

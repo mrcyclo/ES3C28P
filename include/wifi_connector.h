@@ -27,7 +27,7 @@ private:
     lv_obj_t *button_connect = nullptr;
     lv_obj_t *screen_after_connected = nullptr;
 
-    void button_connect_clicked_cb(lv_event_t *e)
+    void button_connect_clicked_cb()
     {
         lv_obj_add_state(button_connect, LV_STATE_DISABLED);
         lv_obj_add_state(dropdown_ssid, LV_STATE_DISABLED);
