@@ -50,7 +50,7 @@ private:
                 NULL,                // Parameters
                 0,                   // Priority
                 &led_rainbow_handle, // Task handle
-                0                    // Core 0
+                1                    // Core 1
             );
             lv_obj_set_style_bg_color(button_led, lv_color_hex(0xac3e31), LV_PART_MAIN);
             led_enabled = true;
