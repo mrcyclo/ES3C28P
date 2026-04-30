@@ -32,6 +32,8 @@ private:
 
     void home_led_clicked_cb(lv_event_t *e)
     {
+        lv_obj_add_state(button_led, LV_STATE_DISABLED);
+
         if (led_enabled)
         {
             vTaskDelete(led_rainbow_handle);
@@ -53,6 +55,8 @@ private:
             lv_obj_set_style_bg_color(button_led, lv_color_hex(0xac3e31), LV_PART_MAIN);
             led_enabled = true;
         }
+
+        lv_obj_remove_state(button_led, LV_STATE_DISABLED);
     }
 
 public:
