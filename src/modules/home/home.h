@@ -71,12 +71,17 @@ protected:
         lv_obj_set_style_bg_opa(content, LV_OPA_0, LV_PART_MAIN);
         lv_obj_set_style_border_width(content, 0, LV_PART_MAIN);
 
+        static int32_t drawer_col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
+        static int32_t drawer_row_dsc[] = {48, 48, 48, 48, 48, LV_GRID_TEMPLATE_LAST};
+
         drawer = lv_obj_create(content);
         lv_obj_set_width(drawer, lv_pct(100));
         lv_obj_set_flex_grow(drawer, 1);
         lv_obj_set_style_bg_color(drawer, lv_color_black(), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(drawer, LV_OPA_50, LV_PART_MAIN);
         lv_obj_add_flag(drawer, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_grid_dsc_array(drawer, drawer_col_dsc, drawer_row_dsc);
+        lv_obj_set_layout(drawer, LV_LAYOUT_GRID);
 
         auto button_menu = lv_btn_create(content);
         lv_obj_add_event_cb(button_menu, LV_OBJ_EVENT_CB(HomeClass, button_menu_clicked_cb), LV_EVENT_CLICKED, this);
@@ -91,13 +96,31 @@ protected:
         lv_label_set_text(label_menu, fa(0xf58d).c_str());
         lv_obj_align(label_menu, LV_ALIGN_CENTER, 0, 0);
 
-        // auto sample_button = lv_button_create(screen);
-        // lv_obj_align(sample_button, LV_ALIGN_CENTER, 0, 0);
-        // lv_obj_add_event_cb(sample_button, LV_OBJ_EVENT_CB(AppRainbowClass, drawer_icon_clicked), LV_EVENT_CLICKED, static_cast<void *>(&AppRainbow));
-        // AppRainbow.set_drawer_icon(sample_button);
-        // auto sample_label = lv_label_create(sample_button);
-        // lv_obj_align(sample_label, LV_ALIGN_CENTER, 0, 0);
-        // lv_label_set_text(sample_label, AppRainbow.get_drawer_icon_text());
+        auto sample_button = lv_button_create(drawer);
+        lv_obj_set_size(sample_button, 48, 48);
+        lv_obj_set_style_radius(sample_button, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+        lv_obj_set_grid_cell(sample_button, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 0, 1);
+        lv_obj_add_event_cb(sample_button, LV_OBJ_EVENT_CB(AppRainbowClass, drawer_icon_clicked), LV_EVENT_CLICKED, static_cast<void *>(&AppRainbow));
+        AppRainbow.set_drawer_icon(sample_button);
+        auto sample_label = lv_label_create(sample_button);
+        lv_obj_align(sample_label, LV_ALIGN_CENTER, 0, 0);
+        lv_label_set_text(sample_label, AppRainbow.get_drawer_icon_text());
+
+        for (int i = 1; i < 15; i++)
+        {
+            const int32_t col = i % 3;
+            const int32_t row = i / 3;
+
+            auto btn = lv_button_create(drawer);
+            lv_obj_set_size(btn, 48, 48);
+            lv_obj_set_style_radius(btn, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+            lv_obj_set_grid_cell(btn, LV_GRID_ALIGN_CENTER, col, 1, LV_GRID_ALIGN_CENTER, row, 1);
+            auto label = lv_label_create(btn);
+            lv_obj_center(label);
+            lv_label_set_text(label, "Button");
+        }
+
+        lv_obj_update_layout(content);
     }
 
 private:
@@ -119,6 +142,7 @@ private:
         else
         {
             lv_obj_remove_flag(drawer, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_update_layout(lv_obj_get_parent(drawer));
             drawer_open = true;
         }
     }

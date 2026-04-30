@@ -4,6 +4,7 @@
 #include "common/iapplication.h"
 #include "led/led.h"
 #include "common/helpers.h"
+#include "config.h"
 
 class AppRainbowClass : public Application
 {
@@ -51,7 +52,7 @@ public:
 
         if (enabled)
         {
-            lv_obj_set_style_bg_color(drawer_icon, lv_color_hex(0xac3e31), LV_PART_MAIN);
+            lv_obj_set_style_bg_color(drawer_icon, LV_COLOR_SUCCESS, LV_PART_MAIN);
         }
         else
         {

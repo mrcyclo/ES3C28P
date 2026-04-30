@@ -7,6 +7,10 @@
 #define STATUS_BAR_HEIGHT 20
 #define FPS 60
 
+#define LV_COLOR_SUCCESS lv_color_hex(0x6bb187)
+#define LV_COLOR_WARNING lv_color_hex(0xdbae5a)
+#define LV_COLOR_ERROR lv_color_hex(0xac3e31)
+
 #define VIETFINANCE_CA_CERTIFICATE "-----BEGIN CERTIFICATE-----\n"                                      \
                                    "MIIFjTCCA3WgAwIBAgIRAIN9TriekS/nLK07x2kt3CAwDQYJKoZIhvcNAQELBQAw\n" \
                                    "TDEgMB4GA1UECxMXR2xvYmFsU2lnbiBSb290IENBIC0gUjYxEzARBgNVBAoTCkds\n" \
