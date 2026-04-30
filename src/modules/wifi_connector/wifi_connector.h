@@ -4,7 +4,7 @@
 #include <lvgl.h>
 #include <string>
 #include <WiFi.h>
-#include "my_msgbox/my_msgbox.h"
+#include "msgbox/msgbox.h"
 #include "common/helpers.h"
 #include "common/imodule.h"
 #include "config.h"
@@ -65,7 +65,7 @@ public:
                 if (WiFi.status() == WL_CONNECTED)
                 {
                     WiFi.setAutoReconnect(true);
-                    my_info_msgbox("Wifi connect success!", nullptr, []() {});
+                    MsgBox.info("Wifi connect success!", nullptr, []() {});
                     state = ENUM_STATE_CONNECTED;
 
                     if (screen_after_connected)
@@ -77,11 +77,11 @@ public:
                 else if (millis() - connect_time >= connect_timeout)
                 {
                     WiFi.disconnect();
-                    my_error_msgbox("Wifi connect failed!", nullptr, [this]()
-                                    {
-                                        lv_obj_remove_state(button_connect, LV_STATE_DISABLED);
-                                        lv_obj_remove_state(dropdown_ssid, LV_STATE_DISABLED);
-                                        lv_obj_remove_state(input_password, LV_STATE_DISABLED); });
+                    MsgBox.error("Wifi connect failed!", nullptr, [this]()
+                                 {
+                                     lv_obj_remove_state(button_connect, LV_STATE_DISABLED);
+                                     lv_obj_remove_state(dropdown_ssid, LV_STATE_DISABLED);
+                                     lv_obj_remove_state(input_password, LV_STATE_DISABLED); });
                     state = ENUM_STATE_READY_TO_CONNECT;
                 }
             }

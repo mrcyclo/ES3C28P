@@ -8,7 +8,7 @@
 #include "time_sync/time_sync.h"
 #include "micro_sd/micro_sd.h"
 #include "common/helpers.h"
-#include "my_msgbox/my_msgbox.h"
+#include "msgbox/msgbox.h"
 #include "common/imodule.h"
 #include "config.h"
 
@@ -97,7 +97,7 @@ private:
     {
         if (msgbox_text.empty())
             return;
-        my_info_msgbox(msgbox_text.c_str(), "Thông tin", []() {});
+        MsgBox.info(msgbox_text.c_str(), "Thông tin", []() {});
     }
 };
 
