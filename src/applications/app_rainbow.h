@@ -46,6 +46,9 @@ public:
 
     void loop_ui() override
     {
+        if (!drawer_icon)
+            return;
+
         if (enabled)
         {
             lv_obj_set_style_bg_color(drawer_icon, lv_color_hex(0xac3e31), LV_PART_MAIN);

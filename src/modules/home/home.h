@@ -7,12 +7,15 @@
 #include "led/led.h"
 #include "common/imodule.h"
 #include "msgbox/msgbox.h"
+#include "app_rainbow.h"
 
 class HomeClass : public ModuleOnce
 {
 public:
     void loop_ui() override
     {
+        AppRainbow.loop_ui();
+
         if (loaded)
             return;
 
@@ -56,12 +59,20 @@ protected:
 
         auto button_menu = lv_btn_create(screen);
         lv_obj_set_width(button_menu, lv_pct(95));
-        lv_obj_align(button_menu, LV_ALIGN_BOTTOM_MID, 0, -10);
+        lv_obj_align(button_menu, LV_ALIGN_BOTTOM_MID, 0, -5);
         lv_obj_add_event_cb(button_menu, LV_OBJ_EVENT_CB(HomeClass, button_menu_clicked_cb), LV_EVENT_CLICKED, this);
 
         auto label_menu = lv_label_create(button_menu);
         lv_obj_align(label_menu, LV_ALIGN_CENTER, 0, 0);
         lv_label_set_text(label_menu, "Applications");
+
+        auto sample_button = lv_button_create(screen);
+        lv_obj_align(sample_button, LV_ALIGN_CENTER, 0, 0);
+        lv_obj_add_event_cb(sample_button, LV_OBJ_EVENT_CB(AppRainbowClass, drawer_icon_clicked), LV_EVENT_CLICKED, static_cast<void *>(&AppRainbow));
+        AppRainbow.set_drawer_icon(sample_button);
+        auto sample_label = lv_label_create(sample_button);
+        lv_obj_align(sample_label, LV_ALIGN_CENTER, 0, 0);
+        lv_label_set_text(sample_label, AppRainbow.get_drawer_icon_text());
     }
 
 private:
