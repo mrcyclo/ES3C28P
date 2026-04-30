@@ -206,6 +206,11 @@ void setup()
     lv_theme_t *theme = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_PURPLE), true, &font_custom_merged);
     lv_display_set_theme(disp, theme);
 
+    // Initialize the (dummy) input device driver
+    auto indev = lv_indev_create();
+    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev, lv_touch_read);
+
     // lv_tft_espi_create() allocates its own TFT_eSPI (see LVGL lv_tft_espi.cpp).
     // Invert must run on that internal instance.
     typedef struct
