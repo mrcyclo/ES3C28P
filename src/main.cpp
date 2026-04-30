@@ -191,6 +191,7 @@
 #include <esp_timer.h>
 #include "config.h"
 #include "status_bar.h"
+#include "led.h"
 
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
@@ -199,8 +200,6 @@ uint32_t lv_tick_source(void)
 {
     return millis();
 }
-
-Adafruit_NeoPixel pixels(1, 42, NEO_GRB + NEO_KHZ800);
 
 void LvglTask(void *parameter)
 {
@@ -308,9 +307,6 @@ void setup()
 {
     Serial.begin(115200);
 
-    pixels.begin();
-    pixels.clear();
-
     lv_init();
     lv_tick_set_cb(lv_tick_source);
 
@@ -333,15 +329,16 @@ void setup()
     }
 
     StatusBar.setup();
+    Led.setup();
 
     xTaskCreatePinnedToCore(
-        LvglTask,   // Task function
-        "LvglTask", // Task name
-        5000,       // Stack size (bytes)
-        NULL,       // Parameters
-        99,         // Priority
-        nullptr,    // Task handle
-        0           // Core 0
+        LvglTask,             // Task function
+        "LvglTask",           // Task name
+        5000,                 // Stack size (bytes)
+        NULL,                 // Parameters
+        configMAX_PRIORITIES, // Priority
+        nullptr,              // Task handle
+        0                     // Core 0
     );
 
     xTaskCreatePinnedToCore(
