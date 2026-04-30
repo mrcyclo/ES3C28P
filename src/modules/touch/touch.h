@@ -2,6 +2,8 @@
 
 #include <TFT_eSPI.h>
 #include "FT6336.h"
+#include "config.h"
+#include "common/imodule.h"
 
 #define TOUCH_FT6336
 #define TOUCH_FT6336_SCL 15
@@ -21,17 +23,31 @@ struct TouchResult
     uint16_t y;
 };
 
-class TouchClass
+class TouchClass : public ModuleOnce
 {
-private:
-    int touch_last_x = 0, touch_last_y = 0;
-    unsigned short int width = 0, height = 0, min_x = 0, max_x = 0, min_y = 0, max_y = 0;
-    FT6336 ts = FT6336(TOUCH_FT6336_SDA, TOUCH_FT6336_SCL, TOUCH_FT6336_INT, TOUCH_FT6336_RST, max(TOUCH_MAP_X1, TOUCH_MAP_X2), max(TOUCH_MAP_Y1, TOUCH_MAP_Y2));
-
 public:
-    void setup(unsigned char roration)
+    void loop_ui() override {}
+    void loop() override {}
+    TouchResult get_touch()
     {
-        switch (roration)
+        ts.read();
+
+        TouchResult result{false, 0, 0};
+        if (!ts.isTouched)
+        {
+            return result;
+        }
+
+        result.touched = true;
+        result.x = (uint16_t)map(ts.points[0].x, min_x, max_x, 0, width - 1);
+        result.y = (uint16_t)map(ts.points[0].y, min_y, max_y, 0, height - 1);
+        return result;
+    }
+
+protected:
+    void setup_impl() override
+    {
+        switch (TFT_ROTATION)
         {
         case ROTATION_NORMAL:
         case ROTATION_INVERTED:
@@ -55,26 +71,12 @@ public:
         }
 
         ts.begin();
-        ts.setRotation(roration);
+        ts.setRotation(TFT_ROTATION);
     }
 
-    TouchResult get_touch()
-    {
-        ts.read();
-
-        TouchResult result{false, 0, 0};
-
-        if (!ts.isTouched)
-        {
-            return result;
-        }
-
-        result.touched = true;
-        result.x = (uint16_t)map(ts.points[0].x, min_x, max_x, 0, width - 1);
-        result.y = (uint16_t)map(ts.points[0].y, min_y, max_y, 0, height - 1);
-        return result;
-    }
+private:
+    unsigned short int width = 0, height = 0, min_x = 0, max_x = 0, min_y = 0, max_y = 0;
+    FT6336 ts = FT6336(TOUCH_FT6336_SDA, TOUCH_FT6336_SCL, TOUCH_FT6336_INT, TOUCH_FT6336_RST, max(TOUCH_MAP_X1, TOUCH_MAP_X2), max(TOUCH_MAP_Y1, TOUCH_MAP_Y2));
 };
 
 extern TouchClass Touch;
-

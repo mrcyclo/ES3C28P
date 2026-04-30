@@ -5,29 +5,13 @@
 #include <vector>
 #include <string>
 #include "micro_sd/micro_sd.h"
+#include "common/imodule.h"
 
-class MP3PlayerClass
+class MP3PlayerClass : public ModuleOnce
 {
-private:
-    lv_obj_t *screen = nullptr;
-    lv_obj_t *label_error = nullptr;
-    bool is_scanned = false;
-    bool is_error = false;
-    std::vector<std::string> files;
-
 public:
-    void setup()
-    {
-        screen = lv_obj_create(NULL);
-        lv_obj_set_style_pad_all(screen, 10, LV_PART_MAIN);
-
-        label_error = lv_label_create(screen);
-        lv_obj_align(label_error, LV_ALIGN_CENTER, 0, 0);
-        lv_label_set_text(label_error, "Error Text Here");
-        lv_obj_add_flag(label_error, LV_OBJ_FLAG_HIDDEN);
-    }
-
-    void loop()
+    void loop_ui() override {}
+    void loop() override
     {
         if (is_error)
         {
@@ -46,7 +30,7 @@ public:
         {
             is_scanned = true;
 
-            auto fs = MicroSD.fs();
+            auto &fs = MicroSD.fs();
             auto dir = fs.open("/");
             if (!dir || !dir.isDirectory())
             {
@@ -75,12 +59,26 @@ public:
             return;
         }
     }
+    lv_obj_t *get_screen() { return screen; }
 
-    lv_obj_t *get_screen()
+protected:
+    void setup_impl() override
     {
-        return screen;
+        screen = lv_obj_create(NULL);
+        lv_obj_set_style_pad_all(screen, 10, LV_PART_MAIN);
+
+        label_error = lv_label_create(screen);
+        lv_obj_align(label_error, LV_ALIGN_CENTER, 0, 0);
+        lv_label_set_text(label_error, "Error Text Here");
+        lv_obj_add_flag(label_error, LV_OBJ_FLAG_HIDDEN);
     }
+
+private:
+    lv_obj_t *screen = nullptr;
+    lv_obj_t *label_error = nullptr;
+    bool is_scanned = false;
+    bool is_error = false;
+    std::vector<std::string> files;
 };
 
 extern MP3PlayerClass MP3Player;
-

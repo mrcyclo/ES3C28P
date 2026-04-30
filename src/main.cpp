@@ -10,6 +10,7 @@
 #include "touch/touch.h"
 #include "micro_sd/micro_sd.h"
 #include "home/home.h"
+#include "fps/fps.h"
 
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
@@ -88,7 +89,7 @@ void setup_tft_backlight_pwm(void)
     ledcWrite(bl_ledc_channel, bl_duty);
 }
 
-void LvglTask(void *parameter)
+void lvgl_task(void *parameter)
 {
     // Bộ canh nhịp khung hình theo microsecond để FPS ra đúng và ổn định.
     //
@@ -182,11 +183,12 @@ void LvglTask(void *parameter)
     }
 }
 
-void LoopTask(void *parameter)
+void loop_task(void *parameter)
 {
     while (true)
     {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        TimeSync.loop();
+        vTaskDelay(pdMS_TO_TICKS(250));
     }
 }
 
@@ -225,18 +227,18 @@ void setup()
 
     setup_tft_backlight_pwm();
 
-    Touch.setup(TFT_ROTATION);
-    StatusBar.setup();
+    Touch.setup();
+    Fps.setup();
     Led.setup();
-
-    MicroSD.mount();
+    MicroSD.setup();
+    StatusBar.setup();
 
     Home.setup();
     lv_scr_load(Home.get_screen());
 
     xTaskCreatePinnedToCore(
-        LvglTask,             // Task function
-        "LvglTask",           // Task name
+        lvgl_task,            // Task function
+        "lvgl_task",          // Task name
         10000,                // Stack size (bytes)
         NULL,                 // Parameters
         configMAX_PRIORITIES, // Priority
@@ -245,13 +247,13 @@ void setup()
     );
 
     xTaskCreatePinnedToCore(
-        LoopTask,   // Task function
-        "LoopTask", // Task name
-        10000,      // Stack size (bytes)
-        NULL,       // Parameters
-        1,          // Priority
-        nullptr,    // Task handle
-        1           // Core 0
+        loop_task,   // Task function
+        "loop_task", // Task name
+        10000,       // Stack size (bytes)
+        NULL,        // Parameters
+        1,           // Priority
+        nullptr,     // Task handle
+        1            // Core 0
     );
 
     Serial.println("[Setup] End setup");

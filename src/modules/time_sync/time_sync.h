@@ -4,6 +4,7 @@
 #include <esp_sntp.h>
 #include <time.h>
 #include "wifi_connector/wifi_connector.h"
+#include "common/imodule.h"
 
 #define TIME_SYNC_GMT_OFFSET_SEC (7 * 3600) // GMT+7 (Việt Nam)
 #define TIME_SYNC_DAYLIGHT_OFFSET_SEC 0
@@ -13,16 +14,31 @@
 #define TIME_SYNC_TOTAL_TIMEOUT_MS 30000
 #define TIME_SYNC_MIN_VALID_EPOCH 1777234651L
 
-class TimeSyncClass
+class TimeSyncClass : public ModuleOnce
 {
-private:
-    bool s_synced = false;
-    bool s_ntp_configured = false;
-    unsigned long s_ntp_start_ms = 0;
-
 public:
-    bool is_synced() { return s_synced; }
+    void loop_ui() override {}
+    void loop() override
+    {
+        if (synced || !WifiConnector.is_connected())
+        {
+            return;
+        }
 
+        if (!ntp_configured || millis() - ntp_start_ms >= TIME_SYNC_TOTAL_TIMEOUT_MS)
+        {
+            configTime(TIME_SYNC_GMT_OFFSET_SEC, TIME_SYNC_DAYLIGHT_OFFSET_SEC, TIME_SYNC_NTP_SERVER_1, TIME_SYNC_NTP_SERVER_2, TIME_SYNC_NTP_SERVER_3);
+            ntp_configured = true;
+            ntp_start_ms = millis();
+        }
+
+        if (sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED && time(nullptr) >= (time_t)TIME_SYNC_MIN_VALID_EPOCH)
+        {
+            synced = true;
+        }
+    }
+
+    bool is_synced() { return synced; }
     struct tm get_time()
     {
         struct tm ti{};
@@ -30,26 +46,13 @@ public:
         return ti;
     }
 
-    void loop()
-    {
-        if (s_synced || !WifiConnector.is_connected())
-        {
-            return;
-        }
+protected:
+    void setup_impl() override {}
 
-        if (!s_ntp_configured || millis() - s_ntp_start_ms >= TIME_SYNC_TOTAL_TIMEOUT_MS)
-        {
-            configTime(TIME_SYNC_GMT_OFFSET_SEC, TIME_SYNC_DAYLIGHT_OFFSET_SEC, TIME_SYNC_NTP_SERVER_1, TIME_SYNC_NTP_SERVER_2, TIME_SYNC_NTP_SERVER_3);
-            s_ntp_configured = true;
-            s_ntp_start_ms = millis();
-        }
-
-        if (sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED && time(nullptr) >= (time_t)TIME_SYNC_MIN_VALID_EPOCH)
-        {
-            s_synced = true;
-        }
-    }
+private:
+    bool synced = false;
+    bool ntp_configured = false;
+    unsigned long ntp_start_ms = 0;
 };
 
 extern TimeSyncClass TimeSync;
-

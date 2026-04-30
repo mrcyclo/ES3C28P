@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Arduino.h>
 #include <lvgl.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
@@ -8,19 +9,43 @@
 #include <ArduinoJson.h>
 #include "config.h"
 #include "common/helpers.h"
+#include "common/imodule.h"
 
-class VnIndexClass
+class VnIndexClass : public ModuleOnce
 {
+public:
+    void loop_ui() override {}
+    void loop() override
+    {
+        if (last_update == 0 || millis() - last_update > 30000)
+        {
+            last_update = millis();
+            get_vnindex_data();
+        }
+    }
+    lv_obj_t *get_screen() { return screen; }
+
+protected:
+    void setup_impl() override
+    {
+        screen = lv_obj_create(NULL);
+        lv_obj_set_style_pad_all(screen, 10, LV_PART_MAIN);
+        lv_obj_set_style_pad_top(screen, STATUS_BAR_HEIGHT + 10, LV_PART_MAIN);
+
+        lb_index = lv_label_create(screen);
+        lv_obj_set_width(lb_index, lv_pct(100));
+        lv_obj_set_style_text_align(lb_index, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+        lv_obj_align(lb_index, LV_ALIGN_CENTER, 0, 0);
+        lv_label_set_recolor(lb_index, true);
+        lv_label_set_text(lb_index, "#000000 VN-Index#");
+    }
+
 private:
     lv_obj_t *screen = nullptr;
     lv_obj_t *lb_index = nullptr;
     CookieJar jar;
     ulong last_update = 0;
 
-    /**
-     * Lấy __RequestVerificationToken trong form __CHART_AjaxAntiForgeryForm.
-     * Hỗ trợ thuộc tính không ngoặc (vd. name=... value=...) và có ngoặc kép/đơn.
-     */
     static std::string extract_body_token(const String &body)
     {
         if (body.length() == 0)
@@ -174,36 +199,6 @@ private:
             break;
         }
     }
-
-public:
-    void setup()
-    {
-        screen = lv_obj_create(NULL);
-        lv_obj_set_style_pad_all(screen, 10, LV_PART_MAIN);
-        lv_obj_set_style_pad_top(screen, STATUS_BAR_HEIGHT + 10, LV_PART_MAIN);
-
-        lb_index = lv_label_create(screen);
-        lv_obj_set_width(lb_index, lv_pct(100));
-        lv_obj_set_style_text_align(lb_index, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-        lv_obj_align(lb_index, LV_ALIGN_CENTER, 0, 0);
-        lv_label_set_recolor(lb_index, true);
-        lv_label_set_text(lb_index, "#000000 VN-Index#");
-    }
-
-    void loop()
-    {
-        if (last_update == 0 || millis() - last_update > 30000)
-        {
-            last_update = millis();
-            get_vnindex_data();
-        }
-    }
-
-    lv_obj_t *get_screen()
-    {
-        return screen;
-    }
 };
 
 extern VnIndexClass VnIndex;
-

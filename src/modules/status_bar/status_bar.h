@@ -9,24 +9,60 @@
 #include "micro_sd/micro_sd.h"
 #include "common/helpers.h"
 #include "my_msgbox/my_msgbox.h"
+#include "common/imodule.h"
 #include "config.h"
 
-class StatusBarClass
+class StatusBarClass : public ModuleOnce
 {
-private:
-    lv_obj_t *lb_left = nullptr;
-    lv_obj_t *lb_right = nullptr;
-    std::string msgbox_text = "";
-
-    void status_bar_right_clicked_cb()
+public:
+    void loop_ui() override
     {
-        if (msgbox_text.empty())
-            return;
-        my_info_msgbox(msgbox_text.c_str(), "Thông tin", []() {});
+        std::vector<std::string> left_statuses;
+        left_statuses.push_back("#ffffff " + std::to_string(Fps.get_fps()) + "#");
+
+        std::string left_text;
+        for (size_t i = 0; i < left_statuses.size(); ++i)
+        {
+            if (i > 0)
+                left_text += ' ';
+            left_text += left_statuses[i];
+        }
+        lv_label_set_text(lb_left, left_text.c_str());
+
+        std::vector<std::string> right_statuses;
+        if (MicroSD.is_mounted())
+        {
+            right_statuses.push_back("#ffffff " + fa(0xf7c2) + "#");
+        }
+        if (WifiConnector.is_connected())
+        {
+            right_statuses.push_back("#ffffff " + fa(0xf1eb) + "#");
+        }
+        if (TimeSync.is_synced())
+        {
+            auto time = TimeSync.get_time();
+            char buf[6];
+            snprintf(buf, sizeof(buf), "%02d:%02d", time.tm_hour, time.tm_min);
+            right_statuses.push_back("#ffffff " + std::string(buf) + "#");
+        }
+
+        std::string right_text;
+        for (size_t i = 0; i < right_statuses.size(); ++i)
+        {
+            if (i > 0)
+                right_text += ' ';
+            right_text += right_statuses[i];
+        }
+        lv_label_set_text(lb_right, right_text.c_str());
+
+        msgbox_text = std::string("IP: ") + (WifiConnector.is_connected() ? WiFi.localIP().toString().c_str() : "Not connected");
+        msgbox_text += "\nUptime: " + std::to_string(millis() / 1000) + "s";
     }
 
-public:
-    void setup()
+    void loop() override {}
+
+protected:
+    void setup_impl() override
     {
         auto box = lv_obj_create(lv_layer_sys());
         lv_obj_align(box, LV_ALIGN_TOP_MID, 0, 0);
@@ -49,60 +85,20 @@ public:
         lv_label_set_recolor(lb_right, true);
         lv_label_set_text(lb_right, "");
         lv_obj_add_flag(lb_right, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_add_event_cb(lb_right, LV_OBJ_EVENT_CB(StatusBarClass, status_bar_right_clicked_cb), LV_EVENT_CLICKED, this);
+        lv_obj_add_event_cb(lb_right, LV_OBJ_EVENT_CB(StatusBarClass, right_clicked_cb), LV_EVENT_CLICKED, this);
     }
 
-    void loop_ui()
+private:
+    lv_obj_t *lb_left = nullptr;
+    lv_obj_t *lb_right = nullptr;
+    std::string msgbox_text;
+
+    void right_clicked_cb()
     {
-        // Build left status parts
-        std::vector<std::string> left_statuses;
-
-        left_statuses.push_back("#ffffff " + std::to_string(Fps.get_fps()) + "#");
-
-        std::string left_text;
-        for (size_t i = 0; i < left_statuses.size(); ++i)
-        {
-            if (i > 0)
-                left_text += ' ';
-            left_text += left_statuses[i];
-        }
-        lv_label_set_text(lb_left, left_text.c_str());
-
-        // Build right status parts
-        std::vector<std::string> right_statuses;
-
-        if (MicroSD.is_mounted())
-        {
-            right_statuses.push_back("#ffffff " + fa(0xf7c2) + "#");
-        }
-
-        if (WifiConnector.is_connected())
-        {
-            right_statuses.push_back("#ffffff " + fa(0xf1eb) + "#");
-        }
-
-        if (TimeSync.is_synced())
-        {
-            auto time = TimeSync.get_time();
-            char buf[6]; // "HH:MM" + null
-            snprintf(buf, sizeof(buf), "%02d:%02d", time.tm_hour, time.tm_min);
-            right_statuses.push_back("#ffffff " + std::string(buf) + "#");
-        }
-
-        std::string right_text;
-        for (size_t i = 0; i < right_statuses.size(); ++i)
-        {
-            if (i > 0)
-                right_text += ' ';
-            right_text += right_statuses[i];
-        }
-        lv_label_set_text(lb_right, right_text.c_str());
-
-        // Update msgbox text
-        msgbox_text = std::string("IP: ") + (WifiConnector.is_connected() ? WiFi.localIP().toString().c_str() : "Not connected");
-        msgbox_text += "\nUptime: " + std::to_string(millis() / 1000) + "s";
+        if (msgbox_text.empty())
+            return;
+        my_info_msgbox(msgbox_text.c_str(), "Thông tin", []() {});
     }
 };
 
 extern StatusBarClass StatusBar;
-
