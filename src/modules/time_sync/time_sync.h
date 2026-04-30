@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <esp_sntp.h>
 #include <time.h>
-#include "wifi_connector.h"
+#include "wifi_connector/wifi_connector.h"
 
 #define TIME_SYNC_GMT_OFFSET_SEC (7 * 3600) // GMT+7 (Việt Nam)
 #define TIME_SYNC_DAYLIGHT_OFFSET_SEC 0
@@ -52,3 +52,4 @@ public:
 };
 
 extern TimeSyncClass TimeSync;
+

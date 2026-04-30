@@ -4,8 +4,8 @@
 #include <lvgl.h>
 #include <string>
 #include <WiFi.h>
-#include "my_msgbox.h"
-#include "helpers.h"
+#include "my_msgbox/my_msgbox.h"
+#include "common/helpers.h"
 #include "config.h"
 
 #define ENUM_STATE_READY_TO_CONNECT 0
@@ -82,44 +82,6 @@ private:
         lv_screen_load(screen);
     }
 
-    // void show_wifi_status()
-    // {
-    //     switch (WiFi.status())
-    //     {
-    //     case WL_IDLE_STATUS:
-    //         lv_label_set_text(label_ip, "IDLE_STATUS");
-    //         break;
-
-    //     case WL_NO_SSID_AVAIL:
-    //         lv_label_set_text(label_ip, "NO_SSID_AVAIL");
-    //         break;
-
-    //     case WL_SCAN_COMPLETED:
-    //         lv_label_set_text(label_ip, "SCAN_COMPLETED");
-    //         break;
-
-    //     case WL_CONNECTED:
-    //         lv_label_set_text(label_ip, "CONNECTED");
-    //         break;
-
-    //     case WL_CONNECT_FAILED:
-    //         lv_label_set_text(label_ip, "CONNECT_FAILED");
-    //         break;
-
-    //     case WL_CONNECTION_LOST:
-    //         lv_label_set_text(label_ip, "CONNECTION_LOST");
-    //         break;
-
-    //     case WL_DISCONNECTED:
-    //         lv_label_set_text(label_ip, "DISCONNECTED");
-    //         break;
-
-    //     default:
-    //         lv_label_set_text_fmt(label_ip, "Status: %d", WiFi.status());
-    //         break;
-    //     }
-    // }
-
 public:
     void setup()
     {
@@ -195,10 +157,6 @@ public:
                     show_screen();
                     state = ENUM_STATE_READY_TO_CONNECT;
                 }
-                else
-                {
-                    // show_wifi_status();
-                }
             }
         }
         else
@@ -227,10 +185,6 @@ public:
                         lv_obj_remove_state(input_password, LV_STATE_DISABLED); });
                     state = ENUM_STATE_READY_TO_CONNECT;
                 }
-                else
-                {
-                    // show_wifi_status();
-                }
             }
         }
     }
@@ -247,3 +201,4 @@ public:
 };
 
 extern WifiConnectorClass WifiConnector;
+

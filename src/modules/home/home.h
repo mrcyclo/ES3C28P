@@ -2,9 +2,9 @@
 
 #include <lvgl.h>
 #include "config.h"
-#include "micro_sd.h"
-#include "helpers.h"
-#include "led.h"
+#include "micro_sd/micro_sd.h"
+#include "common/helpers.h"
+#include "led/led.h"
 
 class HomeClass
 {
@@ -127,3 +127,4 @@ public:
 };
 
 extern HomeClass Home;
+

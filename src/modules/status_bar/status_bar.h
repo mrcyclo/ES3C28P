@@ -3,12 +3,12 @@
 #include <lvgl.h>
 #include <string>
 #include <vector>
-#include "fps.h"
-#include "wifi_connector.h"
-#include "time_sync.h"
-#include "micro_sd.h"
-#include "helpers.h"
-#include "my_msgbox.h"
+#include "fps/fps.h"
+#include "wifi_connector/wifi_connector.h"
+#include "time_sync/time_sync.h"
+#include "micro_sd/micro_sd.h"
+#include "common/helpers.h"
+#include "my_msgbox/my_msgbox.h"
 #include "config.h"
 
 class StatusBarClass
@@ -105,3 +105,4 @@ public:
 };
 
 extern StatusBarClass StatusBar;
+

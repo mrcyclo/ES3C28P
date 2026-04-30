@@ -5,11 +5,11 @@
 #include <Adafruit_NeoPixel.h>
 #include <esp_timer.h>
 #include "config.h"
-#include "status_bar.h"
-#include "led.h"
-#include "touch.h"
-#include "micro_sd.h"
-#include "home.h"
+#include "status_bar/status_bar.h"
+#include "led/led.h"
+#include "touch/touch.h"
+#include "micro_sd/micro_sd.h"
+#include "home/home.h"
 
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];

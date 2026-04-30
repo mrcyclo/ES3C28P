@@ -7,7 +7,7 @@
 #include <string>
 #include <ArduinoJson.h>
 #include "config.h"
-#include "helpers.h"
+#include "common/helpers.h"
 
 class VnIndexClass
 {
@@ -206,3 +206,4 @@ public:
 };
 
 extern VnIndexClass VnIndex;
+

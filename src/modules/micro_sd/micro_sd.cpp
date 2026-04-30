@@ -198,3 +198,4 @@ bool MicroSDClass::lv_read_bmp_dsc_rgb565(const char *path, lv_image_dsc_t *out_
 }
 
 MicroSDClass MicroSD;
+
