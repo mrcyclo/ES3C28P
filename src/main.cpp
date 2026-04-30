@@ -220,7 +220,7 @@ void LvglTask(void *parameter)
     uint32_t remainder_accumulator = 0;
     int64_t next_frame_deadline_us = esp_timer_get_time();
 
-    for (;;)
+    while (true)
     {
         Fps.loop_ui();
         StatusBar.loop_ui();
@@ -298,7 +298,7 @@ void LvglTask(void *parameter)
 
 void LoopTask(void *parameter)
 {
-    for (;;)
+    while (true)
     {
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
