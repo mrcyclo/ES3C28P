@@ -11,7 +11,7 @@ private:
     lv_obj_t *image_wallpaper = nullptr;
     bool loaded = false;
     lv_image_dsc_t wallpaper_dsc{};
-    uint16_t *wallpaper_pixels = nullptr; // allocated in MicroSD.read_bmp_rgb565
+    uint16_t *wallpaper_pixels = nullptr;
 
 public:
     void setup()
@@ -37,7 +37,7 @@ public:
             return;
         }
 
-        const bool ok = MicroSD.lv_read_bmp_dsc_rgb565("/.system/wallpaper.bmp", &wallpaper_dsc, &wallpaper_pixels);
+        bool ok = MicroSD.lv_read_bmp_dsc_rgb565("/.system/wallpaper.bmp", &wallpaper_dsc, &wallpaper_pixels);
         if (!ok)
         {
             lv_obj_add_flag(image_wallpaper, LV_OBJ_FLAG_HIDDEN);
