@@ -293,7 +293,10 @@ private:
             if (dropdown_ssid && task_handle_wifi_scan == nullptr)
                 lv_obj_remove_state(dropdown_ssid, LV_STATE_DISABLED);
             if (input_password)
+            {
                 lv_obj_remove_state(input_password, LV_STATE_DISABLED);
+                lv_obj_add_flag(input_password, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+            }
             if (btn_connect)
                 lv_obj_remove_state(btn_connect, LV_STATE_DISABLED);
             if (btn_scan_wifi)
@@ -306,7 +309,11 @@ private:
             if (dropdown_ssid)
                 lv_obj_add_state(dropdown_ssid, LV_STATE_DISABLED);
             if (input_password)
+            {
+                lv_obj_remove_flag(input_password, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+                lv_obj_clear_state(input_password, LV_STATE_FOCUSED);
                 lv_obj_add_state(input_password, LV_STATE_DISABLED);
+            }
             if (btn_connect)
                 lv_obj_add_state(btn_connect, LV_STATE_DISABLED);
             if (btn_scan_wifi)
