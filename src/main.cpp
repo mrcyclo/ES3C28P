@@ -249,7 +249,7 @@ void setup()
     StatusBar.setup();
 
     WiFi.mode(WIFI_STA);
-    WiFi.setAutoReconnect(true);
+    WiFi.setAutoReconnect(false);
     WiFi.begin();
 
     Keyboard.setup();
