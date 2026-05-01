@@ -139,6 +139,12 @@ private:
         auto *app = static_cast<IApplication *>(lv_event_get_user_data(e));
         if (app)
             app->drawer_icon_clicked();
+
+        auto screen = app->get_screen();
+        if (screen)
+        {
+            lv_scr_load(screen);
+        }
     }
 
     void button_menu_clicked_cb()

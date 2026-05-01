@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <WiFi.h>
 #include <FS.h>
 #include <TFT_eSPI.h>
 #include <lvgl.h>
@@ -11,6 +12,8 @@
 #include "micro_sd/micro_sd.h"
 #include "app_management/app_management.h"
 #include "app_rainbow.h"
+#include "app_wifi.h"
+#include "keyboard/keyboard.h"
 #include "home/home.h"
 #include "fps/fps.h"
 
@@ -18,6 +21,7 @@
 void register_apps()
 {
     AppManagement.register_app(AppRainbow);
+    AppManagement.register_app(AppWifi);
 }
 
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
@@ -242,6 +246,12 @@ void setup()
     Led.setup();
     MicroSD.setup();
     StatusBar.setup();
+
+    WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
+    WiFi.begin();
+
+    Keyboard.setup();
 
     register_apps();
 

@@ -18,7 +18,7 @@ When Cursor auto-generates a Git commit message for this repository, I would lik
 ## Module structure (ESP32/LVGL project)
 
 - **Header-only modules:** Each module is a `Class` whose full implementation lives in its `*.h` file.
-- **`*.cpp` instantiation only:** Each module `*.cpp` contains only `#include "<module>.h"` and the single global instance definition (e.g. `HomeClass Home;`).
+- **`*.cpp` instantiation only:** Each module `*.cpp` contains only `#include "<module>.h"` and the single global instance definition.
 - **Interface:** Modules implement the common interface in `src/modules/common/imodule.h` (`setup()`, `loop_ui()`, `loop()`), typically via `ModuleOnce` so `setup()` is idempotent (setup-once behavior).
 - **Public surface:** Keep only necessary APIs `public`; prefer `private`/`protected` for the rest.
 - **Callbacks/tasks:** Use the macros in `src/modules/common/helpers.h`:

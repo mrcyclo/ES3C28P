@@ -20,7 +20,7 @@ Wiring or vendor wiki links can be added later; for now, pins are only what is i
 
 - LVGL display via `lv_tft_espi_create()`.
 - Touch: read coordinates, mapped to display rotation.
-- `WifiConnector::setup()` / `loop()`: WiFi configuration UI when needed; status / IP.
+- WiFi: **App WiFi** in the home drawer (SSID scan, password, Connect / Disconnect); status bar uses `WiFi.status()` for the Wi-Fi icon. Global **Keyboard** module (LVGL keyboard on the top layer, Montserrat 14).
 - On-screen FPS label (rough draw performance).
 - Serial console at **115200** baud (see `platformio.ini`).
 

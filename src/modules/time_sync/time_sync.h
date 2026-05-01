@@ -1,9 +1,9 @@
 #pragma once
 
 #include <Arduino.h>
+#include <WiFi.h>
 #include <esp_sntp.h>
 #include <time.h>
-#include "wifi_connector/wifi_connector.h"
 #include "common/imodule.h"
 
 #define TIME_SYNC_GMT_OFFSET_SEC (7 * 3600) // GMT+7 (Việt Nam)
@@ -20,7 +20,7 @@ public:
     void loop_ui() override {}
     void loop() override
     {
-        if (synced || !WifiConnector.is_connected())
+        if (synced || WiFi.status() != WL_CONNECTED)
         {
             return;
         }

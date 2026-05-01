@@ -1,10 +1,10 @@
 #pragma once
 
 #include <lvgl.h>
+#include <WiFi.h>
 #include <string>
 #include <vector>
 #include "fps/fps.h"
-#include "wifi_connector/wifi_connector.h"
 #include "time_sync/time_sync.h"
 #include "micro_sd/micro_sd.h"
 #include "common/helpers.h"
@@ -34,7 +34,7 @@ public:
         {
             right_statuses.push_back("#ffffff " + fa(0xf7c2) + "#");
         }
-        if (WifiConnector.is_connected())
+        if (WiFi.status() == WL_CONNECTED)
         {
             right_statuses.push_back("#ffffff " + fa(0xf1eb) + "#");
         }
