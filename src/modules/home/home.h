@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <lvgl.h>
 #include "config.h"
 #include "micro_sd/micro_sd.h"
@@ -7,17 +8,16 @@
 #include "led/led.h"
 #include "common/imodule.h"
 #include "msgbox/msgbox.h"
-#include "app_rainbow.h"
+#include "app_management/app_management.h"
 
 #define MENU_BUTTON_SIZE 30
+#define APP_ICON_SIZE 48
 
 class HomeClass : public ModuleOnce
 {
 public:
     void loop_ui() override
     {
-        AppRainbow.loop_ui();
-
         if (loaded)
             return;
 
@@ -72,7 +72,14 @@ protected:
         lv_obj_set_style_border_width(content, 0, LV_PART_MAIN);
 
         static int32_t drawer_col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-        static int32_t drawer_row_dsc[] = {48, 48, 48, 48, 48, LV_GRID_TEMPLATE_LAST};
+
+        const size_t n = AppManagement.app_count();
+        const size_t rows = (n == 0) ? 1 : (n + 2) / 3;
+        drawer_row_dsc_storage.clear();
+        drawer_row_dsc_storage.reserve(rows + 1);
+        for (size_t r = 0; r < rows; ++r)
+            drawer_row_dsc_storage.push_back(APP_ICON_SIZE);
+        drawer_row_dsc_storage.push_back(LV_GRID_TEMPLATE_LAST);
 
         drawer = lv_obj_create(content);
         lv_obj_set_width(drawer, lv_pct(100));
@@ -80,7 +87,7 @@ protected:
         lv_obj_set_style_bg_color(drawer, lv_color_black(), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(drawer, LV_OPA_50, LV_PART_MAIN);
         lv_obj_add_flag(drawer, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_set_grid_dsc_array(drawer, drawer_col_dsc, drawer_row_dsc);
+        lv_obj_set_grid_dsc_array(drawer, drawer_col_dsc, drawer_row_dsc_storage.data());
         lv_obj_set_layout(drawer, LV_LAYOUT_GRID);
 
         auto button_menu = lv_btn_create(content);
@@ -96,28 +103,22 @@ protected:
         lv_label_set_text(label_menu, fa(0xf58d).c_str());
         lv_obj_align(label_menu, LV_ALIGN_CENTER, 0, 0);
 
-        auto sample_button = lv_button_create(drawer);
-        lv_obj_set_size(sample_button, 48, 48);
-        lv_obj_set_style_radius(sample_button, LV_RADIUS_CIRCLE, LV_PART_MAIN);
-        lv_obj_set_grid_cell(sample_button, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 0, 1);
-        lv_obj_add_event_cb(sample_button, LV_OBJ_EVENT_CB(AppRainbowClass, drawer_icon_clicked), LV_EVENT_CLICKED, static_cast<void *>(&AppRainbow));
-        AppRainbow.set_drawer_icon(sample_button);
-        auto sample_label = lv_label_create(sample_button);
-        lv_obj_align(sample_label, LV_ALIGN_CENTER, 0, 0);
-        lv_label_set_text(sample_label, AppRainbow.get_drawer_icon_text());
-
-        for (int i = 1; i < 15; i++)
+        for (int32_t i = 0; i < n; ++i)
         {
+            IApplication *app = AppManagement.app_at(i);
             const int32_t col = i % 3;
             const int32_t row = i / 3;
 
-            auto btn = lv_button_create(drawer);
-            lv_obj_set_size(btn, 48, 48);
+            lv_obj_t *btn = lv_button_create(drawer);
+            lv_obj_set_size(btn, APP_ICON_SIZE, APP_ICON_SIZE);
             lv_obj_set_style_radius(btn, LV_RADIUS_CIRCLE, LV_PART_MAIN);
             lv_obj_set_grid_cell(btn, LV_GRID_ALIGN_CENTER, col, 1, LV_GRID_ALIGN_CENTER, row, 1);
-            auto label = lv_label_create(btn);
-            lv_obj_center(label);
-            lv_label_set_text(label, "Button");
+            lv_obj_add_event_cb(btn, drawer_app_clicked_cb, LV_EVENT_CLICKED, static_cast<void *>(app));
+            app->set_drawer_icon(btn);
+
+            lv_obj_t *icon_label = lv_label_create(btn);
+            lv_obj_align(icon_label, LV_ALIGN_CENTER, 0, 0);
+            lv_label_set_text(icon_label, app->get_drawer_icon_text());
         }
 
         lv_obj_update_layout(content);
@@ -131,6 +132,14 @@ private:
     uint16_t *wallpaper_pixels = nullptr;
     lv_obj_t *drawer = nullptr;
     bool drawer_open = false;
+    std::vector<int32_t> drawer_row_dsc_storage;
+
+    static void drawer_app_clicked_cb(lv_event_t *e)
+    {
+        auto *app = static_cast<IApplication *>(lv_event_get_user_data(e));
+        if (app)
+            app->drawer_icon_clicked();
+    }
 
     void button_menu_clicked_cb()
     {

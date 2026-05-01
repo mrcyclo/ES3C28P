@@ -9,8 +9,16 @@
 #include "led/led.h"
 #include "touch/touch.h"
 #include "micro_sd/micro_sd.h"
+#include "app_management/app_management.h"
+#include "app_rainbow.h"
 #include "home/home.h"
 #include "fps/fps.h"
+
+// Register applications in the app management system here
+void register_apps()
+{
+    AppManagement.register_app(AppRainbow);
+}
 
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
@@ -111,6 +119,7 @@ void lvgl_task(void *parameter)
     {
         Fps.loop_ui();
         StatusBar.loop_ui();
+        AppManagement.loop_ui();
         Home.loop_ui();
 
         lv_timer_handler();
@@ -188,6 +197,7 @@ void loop_task(void *parameter)
     while (true)
     {
         TimeSync.loop();
+        AppManagement.loop();
         vTaskDelay(pdMS_TO_TICKS(250));
     }
 }
@@ -232,6 +242,8 @@ void setup()
     Led.setup();
     MicroSD.setup();
     StatusBar.setup();
+
+    register_apps();
 
     Home.setup();
     lv_scr_load(Home.get_screen());
