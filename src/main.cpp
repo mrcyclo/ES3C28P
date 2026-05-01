@@ -237,6 +237,7 @@ void setup()
     if (tft_dsc && tft_dsc->tft)
     {
         tft_dsc->tft->invertDisplay(true);
+        tft_dsc->tft->fillScreen(TFT_BLACK);
     }
 
     setup_tft_backlight_pwm();

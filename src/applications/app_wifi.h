@@ -107,8 +107,9 @@ public:
             lv_obj_align_to(btn_disconnect, label_connected_ssid, LV_ALIGN_OUT_BOTTOM_MID, 0, 16);
 
             btn_back = lv_button_create(screen);
-            lv_obj_align(btn_back, LV_ALIGN_BOTTOM_MID, 0, -4);
+            lv_obj_align(btn_back, LV_ALIGN_BOTTOM_MID, 0, 0);
             lv_obj_set_width(btn_back, lv_pct(100));
+            lv_obj_set_style_bg_color(btn_back, LV_COLOR_UNNECCESSARY, LV_PART_MAIN);
             auto lbl_back = lv_label_create(btn_back);
             lv_obj_align(lbl_back, LV_ALIGN_CENTER, 0, 0);
             lv_label_set_text(lbl_back, "Back");
