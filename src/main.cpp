@@ -8,6 +8,7 @@
 
 #include <cstring>
 
+#include "applications/pc_monitor/app_pc_monitor.h"
 #include "applications/rainbow/app_rainbow.h"
 #include "applications/wifi/app_wifi.h"
 #include "config.h"
@@ -24,6 +25,7 @@
 void register_apps() {
     AppManagement.register_app(AppRainbow);
     AppManagement.register_app(AppWifi);
+    AppManagement.register_app(AppPcMonitor);
 }
 
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
