@@ -1,10 +1,13 @@
 #include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <FS.h>
 #include <TFT_eSPI.h>
 #include <WiFi.h>
 #include <esp_timer.h>
 #include <lvgl.h>
+
+#include <cstring>
 
 #include "app_management/app_management.h"
 #include "app_rainbow.h"
@@ -188,6 +191,49 @@ void loop_task(void* parameter) {
     }
 }
 
+void wifi_setup() {
+    WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(false);
+
+    String ssid_to_use;
+    String pass_to_use;
+
+    if (MicroSD.is_mounted()) {
+        File f = MicroSD.fs().open(APP_WIFI_JSON_PATH, FILE_READ);
+        if (f) {
+            JsonDocument doc;
+            const DeserializationError err = deserializeJson(doc, f);
+            f.close();
+
+            if (!err) {
+                const char* connected = doc["connected"];
+                if (connected && connected[0]) {
+                    ssid_to_use = connected;
+                    const JsonArray stored = doc["stored"].as<JsonArray>();
+                    if (!stored.isNull()) {
+                        for (JsonVariant v : stored) {
+                            const JsonObject o = v.as<JsonObject>();
+                            if (o.isNull()) continue;
+
+                            const char* s = o["ssid"];
+                            if (!s || std::strcmp(s, connected) != 0) continue;
+
+                            const char* p = o["passpharse"];
+                            pass_to_use = p ? p : "";
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (ssid_to_use.length() == 0) return;
+
+    WiFi.persistent(false);
+    WiFi.begin(ssid_to_use.c_str(), pass_to_use.c_str());
+}
+
 void setup() {
     Serial.begin(115200);
     delay(2500);  // Allow time for Serial to initialize
@@ -228,9 +274,7 @@ void setup() {
     MicroSD.setup();
     StatusBar.setup();
 
-    WiFi.mode(WIFI_STA);
-    WiFi.setAutoReconnect(false);
-    WiFi.begin();
+    wifi_setup();
 
     Keyboard.setup();
 

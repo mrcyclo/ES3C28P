@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <WiFi.h>
 #include <lvgl.h>
 
@@ -12,6 +13,7 @@
 #include "config.h"
 #include "home/home.h"
 #include "keyboard/keyboard.h"
+#include "micro_sd/micro_sd.h"
 #include "msgbox/msgbox.h"
 
 #define APP_WIFI_CONNECT_TIMEOUT_MS 15000U
@@ -57,6 +59,7 @@ public:
             dropdown_ssid = lv_dropdown_create(ssid_row);
             lv_obj_set_flex_grow(dropdown_ssid, 1);
             lv_dropdown_set_options(dropdown_ssid, "");
+            lv_obj_add_event_cb(dropdown_ssid, LV_OBJ_EVENT_CB(AppWifiClass, on_dropdown_ssid_changed), LV_EVENT_VALUE_CHANGED, this);
 
             btn_scan_wifi = lv_button_create(ssid_row);
             lv_obj_set_size(btn_scan_wifi, 40, 40);
@@ -157,6 +160,8 @@ public:
 
             wifi_evt_sta_connected = WiFi.onEvent([this](arduino_event_id_t, arduino_event_info_t) { show_connected_panel(); }, ARDUINO_EVENT_WIFI_STA_CONNECTED);
             wifi_evt_sta_disconnected = WiFi.onEvent([this](arduino_event_id_t, arduino_event_info_t) { show_setup_panel(); }, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+
+            wifi_stored_load_from_sd();
         }
 
         if (WiFi.status() == WL_CONNECTED) {
@@ -179,6 +184,8 @@ public:
         }
 
         if (!screen) return;
+
+        wifi_stored_entries.clear();
 
         Keyboard.unbind_textarea(input_password);
         Keyboard.dismiss();
@@ -212,6 +219,7 @@ public:
                     opts += scanned_wifi_names[i];
                 }
                 lv_dropdown_set_options(dropdown_ssid, opts.c_str());
+                refresh_password_from_stored();
             }
             set_controls_state(true);
         }
@@ -227,11 +235,12 @@ public:
             }
         }
 
-        if (panel_connected && label_connected_rssi && WiFi.status() == WL_CONNECTED) {
+        if (panel_connected && WiFi.status() == WL_CONNECTED) {
             const unsigned long now = millis();
             if (now - last_connected_rssi_ui_ms >= APP_WIFI_RSSI_REFRESH_MS) {
                 last_connected_rssi_ui_ms = now;
                 refresh_connected_rssi_label();
+                refresh_connected_ip_label();
             }
         }
     }
@@ -260,6 +269,107 @@ private:
 
     wifi_event_id_t wifi_evt_sta_connected = 0;
     wifi_event_id_t wifi_evt_sta_disconnected = 0;
+
+    struct wifi_stored_entry {
+        std::string ssid;
+        std::string passpharse;
+    };
+
+    std::vector<wifi_stored_entry> wifi_stored_entries;
+
+    void wifi_stored_load_from_sd() {
+        wifi_stored_entries.clear();
+        if (!MicroSD.is_mounted()) return;
+
+        File f = MicroSD.fs().open(APP_WIFI_JSON_PATH, FILE_READ);
+        if (!f) return;
+
+        JsonDocument doc;
+        const DeserializationError err = deserializeJson(doc, f);
+        f.close();
+        if (err) return;
+
+        const JsonArray arr = doc["stored"].as<JsonArray>();
+        if (arr.isNull()) return;
+
+        for (JsonVariant v : arr) {
+            const JsonObject o = v.as<JsonObject>();
+            if (o.isNull()) continue;
+
+            const char* s = o["ssid"];
+            const char* p = o["passpharse"];
+            if (!s || !s[0]) continue;
+
+            wifi_stored_entry e;
+            e.ssid = s;
+            e.passpharse = p ? p : "";
+            wifi_stored_entries.push_back(std::move(e));
+        }
+    }
+
+    void wifi_stored_merge_in_memory(const char* ssid, const char* pass) {
+        if (!ssid || !ssid[0]) return;
+
+        const std::string ps = pass ? pass : "";
+        for (wifi_stored_entry& e : wifi_stored_entries) {
+            if (e.ssid == ssid) {
+                e.passpharse = ps;
+                return;
+            }
+        }
+
+        wifi_stored_entries.push_back({std::string(ssid), ps});
+    }
+
+    bool wifi_stored_write_file(const char* connected_ssid) {
+        if (!MicroSD.is_mounted()) {
+            Serial.println("[AppWifi] SD not mounted; wifi.json not saved");
+            return false;
+        }
+
+        MicroSD.fs().mkdir("/.system");
+
+        JsonDocument doc;
+        doc["connected"] = connected_ssid ? connected_ssid : "";
+        JsonArray arr = doc["stored"].to<JsonArray>();
+        for (const wifi_stored_entry& e : wifi_stored_entries) {
+            JsonObject o = arr.add<JsonObject>();
+            o["ssid"] = e.ssid;
+            o["passpharse"] = e.passpharse;
+        }
+
+        File f = MicroSD.fs().open(APP_WIFI_JSON_PATH, FILE_WRITE);
+        if (!f) {
+            Serial.println("[AppWifi] open wifi.json for write failed");
+            return false;
+        }
+
+        if (serializeJson(doc, f) == 0) {
+            f.close();
+            return false;
+        }
+
+        f.close();
+        return true;
+    }
+
+    void refresh_password_from_stored() {
+        if (!dropdown_ssid || !input_password) return;
+
+        lv_textarea_set_text(input_password, "");
+
+        char ssid[64]{};
+        lv_dropdown_get_selected_str(dropdown_ssid, ssid, sizeof(ssid));
+        if (!ssid[0]) return;
+
+        for (const wifi_stored_entry& e : wifi_stored_entries) {
+            if (e.ssid != ssid) continue;
+            lv_textarea_set_text(input_password, e.passpharse.c_str());
+            break;
+        }
+    }
+
+    void on_dropdown_ssid_changed() { refresh_password_from_stored(); }
 
     void stop_wifi_scan_task_if_running() {
         if (task_handle_wifi_scan == nullptr) return;
@@ -343,6 +453,12 @@ private:
         lv_label_set_text_fmt(label_connected_rssi, "%d dBm", WiFi.RSSI());
     }
 
+    void refresh_connected_ip_label() {
+        if (!label_connected_ip) return;
+        const String ip = WiFi.localIP().toString();
+        lv_label_set_text(label_connected_ip, ip.length() && ip != "0.0.0.0" ? ip.c_str() : "(none)");
+    }
+
     void show_connected_panel() {
         const String ssid = WiFi.SSID();
         lv_label_set_text(label_connected_ssid, ssid.length() ? ssid.c_str() : "(unknown)");
@@ -350,8 +466,7 @@ private:
         refresh_connected_rssi_label();
         last_connected_rssi_ui_ms = millis();
 
-        const String ip = WiFi.localIP().toString();
-        lv_label_set_text(label_connected_ip, ip.length() ? ip.c_str() : "(none)");
+        refresh_connected_ip_label();
 
         lv_obj_remove_flag(panel_connected, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(panel_setup, LV_OBJ_FLAG_HIDDEN);
@@ -377,6 +492,12 @@ private:
         lv_dropdown_get_selected_str(dropdown_ssid, ssid, sizeof(ssid));
         const char* pass = lv_textarea_get_text(input_password);
 
+        if (ssid[0]) {
+            wifi_stored_merge_in_memory(ssid, pass);
+            wifi_stored_write_file(ssid);
+        }
+
+        WiFi.persistent(false);
         WiFi.begin(ssid, pass);
         connecting = true;
         connect_started_ms = millis();
