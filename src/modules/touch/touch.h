@@ -1,9 +1,10 @@
 #pragma once
 
 #include <TFT_eSPI.h>
+
 #include "FT6336.h"
 #include "config.h"
-#include "common/imodule.h"
+#include "modules/common/imodule.h"
 
 #define TOUCH_FT6336
 #define TOUCH_FT6336_SCL 15
@@ -16,25 +17,23 @@
 #define TOUCH_MAP_Y1 0
 #define TOUCH_MAP_Y2 TFT_HEIGHT
 
-struct TouchResult
-{
+struct TouchResult {
     bool touched;
     uint16_t x;
     uint16_t y;
 };
 
-class TouchClass : public ModuleOnce
-{
+class TouchClass : public ModuleOnce {
 public:
     void loop_ui() override {}
+
     void loop() override {}
-    TouchResult get_touch()
-    {
+
+    TouchResult get_touch() {
         ts.read();
 
         TouchResult result{false, 0, 0};
-        if (!ts.isTouched)
-        {
+        if (!ts.isTouched) {
             return result;
         }
 
@@ -45,29 +44,27 @@ public:
     }
 
 protected:
-    void setup_impl() override
-    {
-        switch (TFT_ROTATION)
-        {
-        case ROTATION_NORMAL:
-        case ROTATION_INVERTED:
-            width = TFT_WIDTH;
-            height = TFT_HEIGHT;
-            min_x = TOUCH_MAP_X1;
-            max_x = TOUCH_MAP_X2;
-            min_y = TOUCH_MAP_Y1;
-            max_y = TOUCH_MAP_Y2;
-            break;
+    void setup_impl() override {
+        switch (TFT_ROTATION) {
+            case ROTATION_NORMAL:
+            case ROTATION_INVERTED:
+                width = TFT_WIDTH;
+                height = TFT_HEIGHT;
+                min_x = TOUCH_MAP_X1;
+                max_x = TOUCH_MAP_X2;
+                min_y = TOUCH_MAP_Y1;
+                max_y = TOUCH_MAP_Y2;
+                break;
 
-        case ROTATION_LEFT:
-        case ROTATION_RIGHT:
-            width = TFT_HEIGHT;
-            height = TFT_WIDTH;
-            min_x = TOUCH_MAP_Y1;
-            max_x = TOUCH_MAP_Y2;
-            min_y = TOUCH_MAP_X1;
-            max_y = TOUCH_MAP_X2;
-            break;
+            case ROTATION_LEFT:
+            case ROTATION_RIGHT:
+                width = TFT_HEIGHT;
+                height = TFT_WIDTH;
+                min_x = TOUCH_MAP_Y1;
+                max_x = TOUCH_MAP_Y2;
+                min_y = TOUCH_MAP_X1;
+                max_y = TOUCH_MAP_X2;
+                break;
         }
 
         ts.begin();

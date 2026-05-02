@@ -8,13 +8,13 @@
 #include <string>
 #include <vector>
 
-#include "common/helpers.h"
-#include "common/iapplication.h"
 #include "config.h"
-#include "home/home.h"
-#include "keyboard/keyboard.h"
-#include "micro_sd/micro_sd.h"
-#include "msgbox/msgbox.h"
+#include "modules/common/helpers.h"
+#include "modules/common/iapplication.h"
+#include "modules/home/home.h"
+#include "modules/keyboard/keyboard.h"
+#include "modules/micro_sd/micro_sd.h"
+#include "modules/msgbox/msgbox.h"
 
 #define APP_WIFI_CONNECT_TIMEOUT_MS 15000U
 #define APP_WIFI_SCAN_TASK_STACK 8192

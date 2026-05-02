@@ -3,11 +3,11 @@
 #include <string>
 #include <vector>
 
-#include "common/helpers.h"
-#include "common/iapplication.h"
-#include "common/imodule.h"
 #include "config.h"
-#include "msgbox/msgbox.h"
+#include "modules/common/helpers.h"
+#include "modules/common/iapplication.h"
+#include "modules/common/imodule.h"
+#include "modules/msgbox/msgbox.h"
 
 class AppManagementClass : public ModuleOnce {
 public:

@@ -2,7 +2,7 @@
 
 #include <lvgl.h>
 
-#include "common/imodule.h"
+#include "modules/common/imodule.h"
 
 class KeyboardClass;
 

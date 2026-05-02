@@ -7,13 +7,13 @@
 #include <cstdio>
 #include <cstring>
 
-#include "common/helpers.h"
-#include "common/imodule.h"
 #include "config.h"
-#include "fps/fps.h"
-#include "micro_sd/micro_sd.h"
-#include "msgbox/msgbox.h"
-#include "time_sync/time_sync.h"
+#include "modules/common/helpers.h"
+#include "modules/common/imodule.h"
+#include "modules/fps/fps.h"
+#include "modules/micro_sd/micro_sd.h"
+#include "modules/msgbox/msgbox.h"
+#include "modules/time_sync/time_sync.h"
 
 #define STATUS_BAR_REFRESH_MS 500U
 #define STATUS_BAR_BUF_SIZE 96

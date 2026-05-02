@@ -8,17 +8,17 @@
 
 #include <cstring>
 
-#include "app_management/app_management.h"
-#include "app_rainbow.h"
-#include "app_wifi.h"
+#include "applications/app_rainbow.h"
+#include "applications/app_wifi.h"
 #include "config.h"
-#include "fps/fps.h"
-#include "home/home.h"
-#include "keyboard/keyboard.h"
-#include "led/led.h"
-#include "micro_sd/micro_sd.h"
-#include "status_bar/status_bar.h"
-#include "touch/touch.h"
+#include "modules/app_management/app_management.h"
+#include "modules/fps/fps.h"
+#include "modules/home/home.h"
+#include "modules/keyboard/keyboard.h"
+#include "modules/led/led.h"
+#include "modules/micro_sd/micro_sd.h"
+#include "modules/status_bar/status_bar.h"
+#include "modules/touch/touch.h"
 
 // Register applications in the app management system here
 void register_apps() {

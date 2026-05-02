@@ -4,10 +4,10 @@
 
 #include <string>
 
-#include "common/helpers.h"
-#include "common/iapplication.h"
 #include "config.h"
-#include "led/led.h"
+#include "modules/common/helpers.h"
+#include "modules/common/iapplication.h"
+#include "modules/led/led.h"
 
 class AppRainbowClass : public Application {
 public:

@@ -5,13 +5,13 @@
 #include <string>
 #include <vector>
 
-#include "app_management/app_management.h"
-#include "common/helpers.h"
-#include "common/imodule.h"
 #include "config.h"
-#include "led/led.h"
-#include "micro_sd/micro_sd.h"
-#include "msgbox/msgbox.h"
+#include "modules/app_management/app_management.h"
+#include "modules/common/helpers.h"
+#include "modules/common/imodule.h"
+#include "modules/led/led.h"
+#include "modules/micro_sd/micro_sd.h"
+#include "modules/msgbox/msgbox.h"
 
 #define MENU_BUTTON_SIZE 30
 #define APP_ICON_SIZE 48

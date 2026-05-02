@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "common/imodule.h"
-#include "micro_sd/micro_sd.h"
+#include "modules/common/imodule.h"
+#include "modules/micro_sd/micro_sd.h"
 
 class MP3PlayerClass : public ModuleOnce {
 public:
