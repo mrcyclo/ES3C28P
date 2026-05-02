@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 ## Cursor auto-generates
 
 When Cursor auto-generates a Git commit message for this repository, I would like you to use English and commit message less than 100 characters.

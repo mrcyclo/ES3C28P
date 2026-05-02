@@ -41,7 +41,7 @@ public:
             auto lbl_ssid = lv_label_create(panel_setup);
             lv_label_set_text(lbl_ssid, "SSID:");
 
-            ssid_row = lv_obj_create(panel_setup);
+            auto ssid_row = lv_obj_create(panel_setup);
             lv_obj_set_width(ssid_row, lv_pct(100));
             lv_obj_set_height(ssid_row, LV_SIZE_CONTENT);
             lv_obj_align_to(ssid_row, lbl_ssid, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
@@ -73,6 +73,7 @@ public:
             lv_obj_align_to(input_password, lbl_pw, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
             lv_obj_set_width(input_password, lv_pct(100));
             lv_textarea_set_one_line(input_password, true);
+            Keyboard.bind_textarea(input_password);
 
             btn_connect = lv_button_create(panel_setup);
             auto lbl_connect = lv_label_create(btn_connect);
@@ -80,8 +81,6 @@ public:
             lv_label_set_text(lbl_connect, "Connect");
             lv_obj_add_event_cb(btn_connect, LV_OBJ_EVENT_CB(AppWifiClass, on_connect_clicked), LV_EVENT_CLICKED, this);
             lv_obj_align_to(btn_connect, input_password, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
-
-            Keyboard.bind_textarea(input_password);
 
             panel_connected = lv_obj_create(screen);
             lv_obj_set_size(panel_connected, lv_pct(100), lv_pct(100));
@@ -104,20 +103,33 @@ public:
             lv_label_set_text(lbl_disc, "Disconnect");
             lv_obj_add_event_cb(btn_disconnect, LV_OBJ_EVENT_CB(AppWifiClass, on_disconnect_clicked), LV_EVENT_CLICKED, this);
             lv_obj_align_to(btn_disconnect, label_connected_ssid, LV_ALIGN_OUT_BOTTOM_MID, 0, 16);
+
+            wifi_evt_sta_connected = WiFi.onEvent([this](arduino_event_id_t, arduino_event_info_t) { show_connected_panel(); }, ARDUINO_EVENT_WIFI_STA_CONNECTED);
+            wifi_evt_sta_disconnected = WiFi.onEvent([this](arduino_event_id_t, arduino_event_info_t) { show_setup_panel(); }, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
         }
 
-        if (WiFi.status() == WL_CONNECTED)
+        if (WiFi.status() == WL_CONNECTED) {
             show_connected_panel();
-        else
+        } else {
             show_setup_panel();
+        }
     }
 
     void app_close() override {
         connecting = false;
 
+        if (wifi_evt_sta_connected) {
+            WiFi.removeEvent(wifi_evt_sta_connected);
+            wifi_evt_sta_connected = 0;
+        }
+        if (wifi_evt_sta_disconnected) {
+            WiFi.removeEvent(wifi_evt_sta_disconnected);
+            wifi_evt_sta_disconnected = 0;
+        }
+
         if (!screen) return;
 
-        if (input_password) Keyboard.unbind_textarea(input_password);
+        Keyboard.unbind_textarea(input_password);
         Keyboard.dismiss();
 
         stop_wifi_scan_task_if_running();
@@ -129,7 +141,6 @@ public:
         panel_setup = nullptr;
         label_connected_ssid = nullptr;
         btn_disconnect = nullptr;
-        ssid_row = nullptr;
         dropdown_ssid = nullptr;
         btn_scan_wifi = nullptr;
         input_password = nullptr;
@@ -152,17 +163,15 @@ public:
             set_controls_state(true);
         }
 
-        if (connecting && WiFi.status() == WL_CONNECTED) {
+        if (connecting) {
             connecting = false;
-            set_controls_state(true);
-            show_connected_panel();
-            return;
-        }
 
-        if (connecting && millis() - connect_started_ms >= APP_WIFI_CONNECT_TIMEOUT_MS) {
-            WiFi.disconnect();
-            connecting = false;
-            MsgBox.error("Wifi connect failed!", nullptr, [this](bool) { set_controls_state(true); });
+            if (WiFi.status() == WL_CONNECTED) {
+                set_controls_state(true);
+            } else if (millis() - connect_started_ms >= APP_WIFI_CONNECT_TIMEOUT_MS) {
+                WiFi.disconnect();
+                MsgBox.error("Wifi connect failed!", nullptr, [this](bool) { set_controls_state(true); });
+            }
         }
     }
 
@@ -180,11 +189,13 @@ private:
     lv_obj_t* panel_setup = nullptr;
     lv_obj_t* label_connected_ssid = nullptr;
     lv_obj_t* btn_disconnect = nullptr;
-    lv_obj_t* ssid_row = nullptr;
     lv_obj_t* dropdown_ssid = nullptr;
     lv_obj_t* btn_scan_wifi = nullptr;
     lv_obj_t* input_password = nullptr;
     lv_obj_t* btn_connect = nullptr;
+
+    wifi_event_id_t wifi_evt_sta_connected = 0;
+    wifi_event_id_t wifi_evt_sta_disconnected = 0;
 
     void stop_wifi_scan_task_if_running() {
         if (task_handle_wifi_scan == nullptr) return;
@@ -199,16 +210,14 @@ private:
     void wifi_scan_task() {
         WiFi.scanDelete();
         WiFi.disconnect();
-        const int n = WiFi.scanNetworks();
 
-        std::vector<std::string> names;
-        if (n > 0) {
-            names.reserve(static_cast<size_t>(n));
-            for (int i = 0; i < n; ++i) names.emplace_back(WiFi.SSID(i).c_str());
+        scanned_wifi_names.clear();
+        const int n = WiFi.scanNetworks();
+        for (int i = 0; i < n; ++i) {
+            scanned_wifi_names.push_back(WiFi.SSID(i).c_str());
         }
         WiFi.scanDelete();
 
-        scanned_wifi_names = std::move(names);
         is_scan_wifi_completed = true;
 
         TaskHandle_t self = xTaskGetCurrentTaskHandle();
@@ -238,10 +247,10 @@ private:
     }
 
     void on_scan_wifi_clicked() {
-        if (task_handle_wifi_scan != nullptr || !dropdown_ssid) return;
-
         set_controls_state(false);
-        if (!start_wifi_scan_task()) set_controls_state(true);
+        if (!start_wifi_scan_task()) {
+            set_controls_state(true);
+        }
     }
 
     void set_controls_state(bool enabled) {
@@ -266,8 +275,6 @@ private:
     }
 
     void show_connected_panel() {
-        if (!panel_connected || !panel_setup || !label_connected_ssid) return;
-
         const String s = WiFi.SSID();
         lv_label_set_text(label_connected_ssid, s.length() ? s.c_str() : "(unknown)");
 
@@ -276,8 +283,6 @@ private:
     }
 
     void show_setup_panel() {
-        if (!panel_connected || !panel_setup || !dropdown_ssid) return;
-
         set_controls_state(false);
         if (!start_wifi_scan_task()) set_controls_state(true);
         lv_obj_remove_flag(panel_setup, LV_OBJ_FLAG_HIDDEN);
@@ -306,7 +311,6 @@ private:
         WiFi.disconnect();
         Keyboard.dismiss();
         connecting = false;
-        show_setup_panel();
     }
 };
 
