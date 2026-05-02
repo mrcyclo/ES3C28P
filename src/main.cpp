@@ -31,6 +31,16 @@ uint32_t draw_buf[DRAW_BUF_SIZE / 4];
 
 uint32_t lv_tick_source(void) { return millis(); }
 
+// FPS = số frame thực sự flush xong (partial buffer: chỉ đếm khi flush cuối của một chu kỳ vẽ).
+static void fps_on_display_flush_finish(lv_event_t* e) {
+    if (lv_event_get_code(e) != LV_EVENT_FLUSH_FINISH) return;
+
+    auto disp = static_cast<lv_display_t*>(lv_event_get_target(e));
+    if (!disp || !lv_display_flush_is_last(disp)) return;
+
+    Fps.notify_frame_flushed();
+}
+
 void lv_touch_read(lv_indev_t* indev, lv_indev_data_t* data) {
     auto t = Touch.get_touch();
     if (!t.touched) {
@@ -102,7 +112,7 @@ void lvgl_task(void* parameter) {
     // - Khi có animation/dirty, LVGL trả khoảng `LV_DEF_REFR_PERIOD` ms (33ms ~ 30 FPS) →
     //   task ngủ đúng tới lần render kế. Không busy-wait, không deadline cứng.
     while (true) {
-        Fps.loop_ui();
+        Fps.loop_ui();  // gom số frame flush theo từng giây (đếm thực tế ở LV_EVENT_FLUSH_FINISH)
         StatusBar.loop_ui();
         AppManagement.loop_ui();
         Home.loop_ui();
@@ -178,6 +188,7 @@ void setup() {
 
     auto disp = lv_tft_espi_create(TFT_WIDTH, TFT_HEIGHT, draw_buf, sizeof(draw_buf));
     lv_display_set_rotation(disp, TFT_ROTATION);
+    lv_display_add_event_cb(disp, fps_on_display_flush_finish, LV_EVENT_FLUSH_FINISH, nullptr);
 
     auto theme = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_PURPLE), true, &font_custom_merged);
     lv_display_set_theme(disp, theme);

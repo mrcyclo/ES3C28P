@@ -1,27 +1,27 @@
 #pragma once
 
 #include <Arduino.h>
-#include "config.h"
+#include <lvgl.h>
+
 #include "common/imodule.h"
 
-class FpsClass : public ModuleOnce
-{
+class FpsClass : public ModuleOnce {
 public:
-    void loop_ui() override
-    {
-        const unsigned long start_time = millis();
-        if (start_time < fps_time + 1000)
-        {
-            fps_count++;
-        }
-        else
-        {
-            fps = fps_count;
-            fps_count = 1;
-            fps_time = start_time;
-        }
+    // Gọi từ `LV_EVENT_FLUSH_FINISH` khi `lv_display_flush_is_last(disp)` — một lần / frame thực tế lên TFT.
+    void notify_frame_flushed() { fps_count++; }
+
+    // Cập nhật bộ đếm theo giây (gọi từ `lvgl_task` mỗi vòng; không còn đếm “vòng lặp task”).
+    void loop_ui() override {
+        const unsigned long t = millis();
+        if (t < fps_time + 1000) return;
+
+        fps = fps_count;
+        fps_count = 0;
+        fps_time = t;
     }
+
     void loop() override {}
+
     unsigned long get_fps() { return fps; }
 
 protected:
