@@ -13,7 +13,7 @@ public:
     {
         dismiss_existing_silent();
 
-        active_callback = std::function<void()>(std::forward<Fn>(fn));
+        active_callback = std::function<void(bool)>(std::forward<Fn>(fn));
         has_active_callback = true;
 
         msgbox = lv_msgbox_create(lv_layer_top());
@@ -34,7 +34,7 @@ public:
     {
         dismiss_existing_silent();
 
-        active_callback = std::function<void()>(std::forward<Fn>(fn));
+        active_callback = std::function<void(bool)>(std::forward<Fn>(fn));
         has_active_callback = true;
 
         msgbox = lv_msgbox_create(lv_layer_top());
@@ -50,11 +50,35 @@ public:
         create_overlay();
     }
 
+    template <typename Fn>
+    inline void confirm(const char *text, const char *title, Fn &&fn)
+    {
+        dismiss_existing_silent();
+
+        active_callback = std::function<void(bool)>(std::forward<Fn>(fn));
+        has_active_callback = true;
+
+        msgbox = lv_msgbox_create(lv_layer_top());
+        lv_obj_set_width(msgbox, lv_pct(90));
+        lv_msgbox_add_title(msgbox, title ? title : "Confirm");
+        lv_msgbox_add_text(msgbox, text);
+        lv_obj_set_style_bg_color(lv_msgbox_get_header(msgbox), lv_color_hex(0xac3e31), LV_PART_MAIN);
+        lv_obj_set_style_border_color(msgbox, lv_color_hex(0xac3e31), LV_PART_MAIN);
+
+        lv_obj_t *btn_ok = lv_msgbox_add_footer_button(msgbox, "Confirm");
+        lv_obj_add_event_cb(btn_ok, LV_OBJ_EVENT_CB(MsgBoxClass, ok_clicked_cb), LV_EVENT_CLICKED, this);
+
+        lv_obj_t *btn_cancel = lv_msgbox_add_footer_button(msgbox, "Cancel");
+        lv_obj_add_event_cb(btn_cancel, LV_OBJ_EVENT_CB(MsgBoxClass, cancel_clicked_cb), LV_EVENT_CLICKED, this);
+
+        create_overlay();
+    }
+
 private:
     lv_obj_t *msgbox = nullptr;
     lv_obj_t *overlay = nullptr;
 
-    std::function<void()> active_callback;
+    std::function<void(bool)> active_callback;
     bool has_active_callback = false;
 
     void ok_clicked_cb()
@@ -74,8 +98,31 @@ private:
 
         if (has_active_callback)
         {
-            active_callback();
-            active_callback = std::function<void()>();
+            active_callback(true);
+            active_callback = std::function<void(bool)>();
+            has_active_callback = false;
+        }
+    }
+
+    void cancel_clicked_cb()
+    {
+        if (msgbox)
+        {
+            lv_msgbox_close(msgbox);
+            lv_obj_delete(msgbox);
+            msgbox = nullptr;
+        }
+
+        if (overlay)
+        {
+            lv_obj_delete(overlay);
+            overlay = nullptr;
+        }
+
+        if (has_active_callback)
+        {
+            active_callback(false);
+            active_callback = std::function<void(bool)>();
             has_active_callback = false;
         }
     }
@@ -85,7 +132,7 @@ private:
         if (!msgbox && !overlay)
             return;
 
-        active_callback = std::function<void()>();
+        active_callback = std::function<void(bool)>();
         has_active_callback = false;
 
         if (msgbox)

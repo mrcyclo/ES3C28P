@@ -32,7 +32,7 @@ public:
             lv_obj_remove_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
 
             panel_setup = lv_obj_create(screen);
-            lv_obj_set_size(panel_setup, lv_pct(100), lv_pct(88));
+            lv_obj_set_size(panel_setup, lv_pct(100), lv_pct(100));
             lv_obj_align(panel_setup, LV_ALIGN_TOP_MID, 0, 0);
             lv_obj_set_style_pad_all(panel_setup, 0, LV_PART_MAIN);
             lv_obj_set_style_border_width(panel_setup, 0, LV_PART_MAIN);
@@ -85,7 +85,7 @@ public:
             Keyboard.bind_textarea(input_password);
 
             panel_connected = lv_obj_create(screen);
-            lv_obj_set_size(panel_connected, lv_pct(100), lv_pct(88));
+            lv_obj_set_size(panel_connected, lv_pct(100), lv_pct(100));
             lv_obj_align(panel_connected, LV_ALIGN_TOP_MID, 0, 0);
             lv_obj_set_style_pad_all(panel_connected, 0, LV_PART_MAIN);
             lv_obj_set_style_border_width(panel_connected, 0, LV_PART_MAIN);
@@ -105,15 +105,6 @@ public:
             lv_label_set_text(lbl_disc, "Disconnect");
             lv_obj_add_event_cb(btn_disconnect, LV_OBJ_EVENT_CB(AppWifiClass, on_disconnect_clicked), LV_EVENT_CLICKED, this);
             lv_obj_align_to(btn_disconnect, label_connected_ssid, LV_ALIGN_OUT_BOTTOM_MID, 0, 16);
-
-            btn_back = lv_button_create(screen);
-            lv_obj_align(btn_back, LV_ALIGN_BOTTOM_MID, 0, 0);
-            lv_obj_set_width(btn_back, lv_pct(100));
-            lv_obj_set_style_bg_color(btn_back, LV_COLOR_UNNECCESSARY, LV_PART_MAIN);
-            auto lbl_back = lv_label_create(btn_back);
-            lv_obj_align(lbl_back, LV_ALIGN_CENTER, 0, 0);
-            lv_label_set_text(lbl_back, "Back");
-            lv_obj_add_event_cb(btn_back, LV_OBJ_EVENT_CB(AppWifiClass, on_back_clicked), LV_EVENT_CLICKED, this);
         }
 
         if (WiFi.status() == WL_CONNECTED)
@@ -124,8 +115,29 @@ public:
 
     void app_close() override
     {
-        reset_connection_state();
-        teardown_ui();
+        connecting = false;
+
+        if (!screen)
+            return;
+
+        if (input_password)
+            Keyboard.unbind_textarea(input_password);
+        Keyboard.dismiss();
+
+        stop_wifi_scan_task_if_running();
+
+        lv_obj_delete(screen);
+        screen = nullptr;
+
+        panel_connected = nullptr;
+        panel_setup = nullptr;
+        label_connected_ssid = nullptr;
+        btn_disconnect = nullptr;
+        ssid_row = nullptr;
+        dropdown_ssid = nullptr;
+        btn_scan_wifi = nullptr;
+        input_password = nullptr;
+        btn_connect = nullptr;
     }
 
     void loop_ui() override
@@ -162,7 +174,7 @@ public:
         {
             WiFi.disconnect();
             connecting = false;
-            MsgBox.error("Wifi connect failed!", nullptr, [this]()
+            MsgBox.error("Wifi connect failed!", nullptr, [this](bool)
                          { set_controls_state(true); });
         }
     }
@@ -186,12 +198,6 @@ private:
     lv_obj_t *btn_scan_wifi = nullptr;
     lv_obj_t *input_password = nullptr;
     lv_obj_t *btn_connect = nullptr;
-    lv_obj_t *btn_back = nullptr;
-
-    void reset_connection_state()
-    {
-        connecting = false;
-    }
 
     void stop_wifi_scan_task_if_running()
     {
@@ -203,32 +209,6 @@ private:
         WiFi.scanDelete();
         scanned_wifi_names.clear();
         is_scan_wifi_completed = false;
-    }
-
-    void teardown_ui()
-    {
-        if (!screen)
-            return;
-
-        if (input_password)
-            Keyboard.unbind_textarea(input_password);
-        Keyboard.dismiss();
-
-        stop_wifi_scan_task_if_running();
-
-        lv_obj_delete(screen);
-        screen = nullptr;
-
-        panel_connected = nullptr;
-        panel_setup = nullptr;
-        label_connected_ssid = nullptr;
-        btn_disconnect = nullptr;
-        ssid_row = nullptr;
-        dropdown_ssid = nullptr;
-        btn_scan_wifi = nullptr;
-        input_password = nullptr;
-        btn_connect = nullptr;
-        btn_back = nullptr;
     }
 
     void wifi_scan_task()
@@ -302,8 +282,6 @@ private:
                 lv_obj_remove_state(btn_connect, LV_STATE_DISABLED);
             if (btn_scan_wifi)
                 lv_obj_remove_state(btn_scan_wifi, LV_STATE_DISABLED);
-            if (btn_back)
-                lv_obj_remove_state(btn_back, LV_STATE_DISABLED);
         }
         else
         {
@@ -319,8 +297,6 @@ private:
                 lv_obj_add_state(btn_connect, LV_STATE_DISABLED);
             if (btn_scan_wifi)
                 lv_obj_add_state(btn_scan_wifi, LV_STATE_DISABLED);
-            if (btn_back)
-                lv_obj_add_state(btn_back, LV_STATE_DISABLED);
         }
     }
 
@@ -374,13 +350,6 @@ private:
         Keyboard.dismiss();
         connecting = false;
         show_setup_panel();
-    }
-
-    void on_back_clicked()
-    {
-        reset_connection_state();
-        teardown_ui();
-        lv_screen_load(Home.get_screen());
     }
 };
 

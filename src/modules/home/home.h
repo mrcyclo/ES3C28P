@@ -137,6 +137,8 @@ private:
     static void drawer_app_clicked_cb(lv_event_t *e)
     {
         auto *app = static_cast<IApplication *>(lv_event_get_user_data(e));
+        AppManagement.set_current_app(app);
+
         if (app)
             app->drawer_icon_clicked();
 

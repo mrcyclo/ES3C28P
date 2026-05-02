@@ -254,10 +254,13 @@ void setup()
 
     Keyboard.setup();
 
+    AppManagement.setup();
     register_apps();
 
     Home.setup();
     lv_scr_load(Home.get_screen());
+
+    AppManagement.set_home_screen(Home.get_screen());
 
     xTaskCreatePinnedToCore(
         lvgl_task,            // Task function
