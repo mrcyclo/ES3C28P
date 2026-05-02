@@ -1,0 +1,13 @@
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 200
+BreakBeforeBraces: Attach
+AllowShortLambdasOnASingleLine: Inline
+AllowAllArgumentsOnNextLine: false
+BinPackArguments: false
+ContinuationIndentWidth: 4
+BreakAfterOpenBracketFunction: true
+BreakBeforeCloseBracketFunction: true
+AlignAfterOpenBracket: false
+AccessModifierOffset: -4
+SeparateDefinitionBlocks: Always

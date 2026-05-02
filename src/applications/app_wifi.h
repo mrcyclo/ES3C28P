@@ -1,15 +1,17 @@
 #pragma once
 
 #include <Arduino.h>
-#include <lvgl.h>
-#include <vector>
 #include <WiFi.h>
+#include <lvgl.h>
+
 #include <string>
-#include "common/iapplication.h"
+#include <vector>
+
 #include "common/helpers.h"
+#include "common/iapplication.h"
 #include "config.h"
-#include "keyboard/keyboard.h"
 #include "home/home.h"
+#include "keyboard/keyboard.h"
 #include "msgbox/msgbox.h"
 
 #define APP_WIFI_CONNECT_TIMEOUT_MS 15000U
@@ -17,15 +19,12 @@
 #define APP_WIFI_SCAN_TASK_PRIORITY 1
 #define APP_WIFI_SCAN_TASK_CORE 1
 
-class AppWifiClass : public Application
-{
+class AppWifiClass : public Application {
 public:
-    const char *get_drawer_icon_text() override { return fa(0xf1eb).c_str(); }
+    const char* get_drawer_icon_text() override { return fa(0xf1eb).c_str(); }
 
-    void drawer_icon_clicked() override
-    {
-        if (!screen)
-        {
+    void drawer_icon_clicked() override {
+        if (!screen) {
             screen = lv_obj_create(nullptr);
             lv_obj_set_style_pad_all(screen, 10, LV_PART_MAIN);
             lv_obj_set_style_pad_top(screen, STATUS_BAR_HEIGHT + 10, LV_PART_MAIN);
@@ -113,15 +112,12 @@ public:
             show_setup_panel();
     }
 
-    void app_close() override
-    {
+    void app_close() override {
         connecting = false;
 
-        if (!screen)
-            return;
+        if (!screen) return;
 
-        if (input_password)
-            Keyboard.unbind_textarea(input_password);
+        if (input_password) Keyboard.unbind_textarea(input_password);
         Keyboard.dismiss();
 
         stop_wifi_scan_task_if_running();
@@ -140,21 +136,15 @@ public:
         btn_connect = nullptr;
     }
 
-    void loop_ui() override
-    {
-        if (!screen)
-            return;
+    void loop_ui() override {
+        if (!screen) return;
 
-        if (is_scan_wifi_completed)
-        {
+        if (is_scan_wifi_completed) {
             is_scan_wifi_completed = false;
-            if (dropdown_ssid)
-            {
+            if (dropdown_ssid) {
                 std::string opts;
-                for (size_t i = 0; i < scanned_wifi_names.size(); ++i)
-                {
-                    if (i > 0)
-                        opts += '\n';
+                for (size_t i = 0; i < scanned_wifi_names.size(); ++i) {
+                    if (i > 0) opts += '\n';
                     opts += scanned_wifi_names[i];
                 }
                 lv_dropdown_set_options(dropdown_ssid, opts.c_str());
@@ -162,20 +152,17 @@ public:
             set_controls_state(true);
         }
 
-        if (connecting && WiFi.status() == WL_CONNECTED)
-        {
+        if (connecting && WiFi.status() == WL_CONNECTED) {
             connecting = false;
             set_controls_state(true);
             show_connected_panel();
             return;
         }
 
-        if (connecting && millis() - connect_started_ms >= APP_WIFI_CONNECT_TIMEOUT_MS)
-        {
+        if (connecting && millis() - connect_started_ms >= APP_WIFI_CONNECT_TIMEOUT_MS) {
             WiFi.disconnect();
             connecting = false;
-            MsgBox.error("Wifi connect failed!", nullptr, [this](bool)
-                         { set_controls_state(true); });
+            MsgBox.error("Wifi connect failed!", nullptr, [this](bool) { set_controls_state(true); });
         }
     }
 
@@ -189,20 +176,18 @@ private:
     bool is_scan_wifi_completed = false;
     TaskHandle_t task_handle_wifi_scan = nullptr;
 
-    lv_obj_t *panel_connected = nullptr;
-    lv_obj_t *panel_setup = nullptr;
-    lv_obj_t *label_connected_ssid = nullptr;
-    lv_obj_t *btn_disconnect = nullptr;
-    lv_obj_t *ssid_row = nullptr;
-    lv_obj_t *dropdown_ssid = nullptr;
-    lv_obj_t *btn_scan_wifi = nullptr;
-    lv_obj_t *input_password = nullptr;
-    lv_obj_t *btn_connect = nullptr;
+    lv_obj_t* panel_connected = nullptr;
+    lv_obj_t* panel_setup = nullptr;
+    lv_obj_t* label_connected_ssid = nullptr;
+    lv_obj_t* btn_disconnect = nullptr;
+    lv_obj_t* ssid_row = nullptr;
+    lv_obj_t* dropdown_ssid = nullptr;
+    lv_obj_t* btn_scan_wifi = nullptr;
+    lv_obj_t* input_password = nullptr;
+    lv_obj_t* btn_connect = nullptr;
 
-    void stop_wifi_scan_task_if_running()
-    {
-        if (task_handle_wifi_scan == nullptr)
-            return;
+    void stop_wifi_scan_task_if_running() {
+        if (task_handle_wifi_scan == nullptr) return;
 
         vTaskDelete(task_handle_wifi_scan);
         task_handle_wifi_scan = nullptr;
@@ -211,18 +196,15 @@ private:
         is_scan_wifi_completed = false;
     }
 
-    void wifi_scan_task()
-    {
+    void wifi_scan_task() {
         WiFi.scanDelete();
         WiFi.disconnect();
         const int n = WiFi.scanNetworks();
 
         std::vector<std::string> names;
-        if (n > 0)
-        {
+        if (n > 0) {
             names.reserve(static_cast<size_t>(n));
-            for (int i = 0; i < n; ++i)
-                names.emplace_back(WiFi.SSID(i).c_str());
+            for (int i = 0; i < n; ++i) names.emplace_back(WiFi.SSID(i).c_str());
         }
         WiFi.scanDelete();
 
@@ -234,10 +216,8 @@ private:
         vTaskDelete(self);
     }
 
-    bool start_wifi_scan_task()
-    {
-        if (task_handle_wifi_scan != nullptr)
-            return true;
+    bool start_wifi_scan_task() {
+        if (task_handle_wifi_scan != nullptr) return true;
 
         const BaseType_t ok = xTaskCreatePinnedToCore(
             FREERTOS_TASK_CB(AppWifiClass, wifi_scan_task),
@@ -246,10 +226,10 @@ private:
             this,
             APP_WIFI_SCAN_TASK_PRIORITY,
             &task_handle_wifi_scan,
-            APP_WIFI_SCAN_TASK_CORE);
+            APP_WIFI_SCAN_TASK_CORE
+        );
 
-        if (ok != pdPASS)
-        {
+        if (ok != pdPASS) {
             task_handle_wifi_scan = nullptr;
             return false;
         }
@@ -257,53 +237,36 @@ private:
         return true;
     }
 
-    void on_scan_wifi_clicked()
-    {
-        if (task_handle_wifi_scan != nullptr || !dropdown_ssid)
-            return;
+    void on_scan_wifi_clicked() {
+        if (task_handle_wifi_scan != nullptr || !dropdown_ssid) return;
 
         set_controls_state(false);
-        if (!start_wifi_scan_task())
-            set_controls_state(true);
+        if (!start_wifi_scan_task()) set_controls_state(true);
     }
 
-    void set_controls_state(bool enabled)
-    {
-        if (enabled)
-        {
-            if (dropdown_ssid && task_handle_wifi_scan == nullptr)
-                lv_obj_remove_state(dropdown_ssid, LV_STATE_DISABLED);
-            if (input_password)
-            {
+    void set_controls_state(bool enabled) {
+        if (enabled) {
+            if (dropdown_ssid && task_handle_wifi_scan == nullptr) lv_obj_remove_state(dropdown_ssid, LV_STATE_DISABLED);
+            if (input_password) {
                 lv_obj_remove_state(input_password, LV_STATE_DISABLED);
                 lv_obj_add_flag(input_password, LV_OBJ_FLAG_CLICK_FOCUSABLE);
             }
-            if (btn_connect)
-                lv_obj_remove_state(btn_connect, LV_STATE_DISABLED);
-            if (btn_scan_wifi)
-                lv_obj_remove_state(btn_scan_wifi, LV_STATE_DISABLED);
-        }
-        else
-        {
-            if (dropdown_ssid)
-                lv_obj_add_state(dropdown_ssid, LV_STATE_DISABLED);
-            if (input_password)
-            {
+            if (btn_connect) lv_obj_remove_state(btn_connect, LV_STATE_DISABLED);
+            if (btn_scan_wifi) lv_obj_remove_state(btn_scan_wifi, LV_STATE_DISABLED);
+        } else {
+            if (dropdown_ssid) lv_obj_add_state(dropdown_ssid, LV_STATE_DISABLED);
+            if (input_password) {
                 lv_obj_remove_flag(input_password, LV_OBJ_FLAG_CLICK_FOCUSABLE);
                 lv_obj_clear_state(input_password, LV_STATE_FOCUSED);
                 lv_obj_add_state(input_password, LV_STATE_DISABLED);
             }
-            if (btn_connect)
-                lv_obj_add_state(btn_connect, LV_STATE_DISABLED);
-            if (btn_scan_wifi)
-                lv_obj_add_state(btn_scan_wifi, LV_STATE_DISABLED);
+            if (btn_connect) lv_obj_add_state(btn_connect, LV_STATE_DISABLED);
+            if (btn_scan_wifi) lv_obj_add_state(btn_scan_wifi, LV_STATE_DISABLED);
         }
     }
 
-    void show_connected_panel()
-    {
-        if (!panel_connected || !panel_setup || !label_connected_ssid)
-            return;
+    void show_connected_panel() {
+        if (!panel_connected || !panel_setup || !label_connected_ssid) return;
 
         const String s = WiFi.SSID();
         lv_label_set_text(label_connected_ssid, s.length() ? s.c_str() : "(unknown)");
@@ -312,22 +275,17 @@ private:
         lv_obj_add_flag(panel_setup, LV_OBJ_FLAG_HIDDEN);
     }
 
-    void show_setup_panel()
-    {
-        if (!panel_connected || !panel_setup || !dropdown_ssid)
-            return;
+    void show_setup_panel() {
+        if (!panel_connected || !panel_setup || !dropdown_ssid) return;
 
         set_controls_state(false);
-        if (!start_wifi_scan_task())
-            set_controls_state(true);
+        if (!start_wifi_scan_task()) set_controls_state(true);
         lv_obj_remove_flag(panel_setup, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(panel_connected, LV_OBJ_FLAG_HIDDEN);
     }
 
-    void on_connect_clicked()
-    {
-        if (connecting)
-            return;
+    void on_connect_clicked() {
+        if (connecting) return;
 
         stop_wifi_scan_task_if_running();
 
@@ -337,15 +295,14 @@ private:
 
         char ssid[64]{};
         lv_dropdown_get_selected_str(dropdown_ssid, ssid, sizeof(ssid));
-        const char *pass = lv_textarea_get_text(input_password);
+        const char* pass = lv_textarea_get_text(input_password);
 
         WiFi.begin(ssid, pass);
         connecting = true;
         connect_started_ms = millis();
     }
 
-    void on_disconnect_clicked()
-    {
+    void on_disconnect_clicked() {
         WiFi.disconnect();
         Keyboard.dismiss();
         connecting = false;

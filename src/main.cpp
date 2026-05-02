@@ -1,25 +1,25 @@
+#include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
-#include <WiFi.h>
 #include <FS.h>
 #include <TFT_eSPI.h>
-#include <lvgl.h>
-#include <Adafruit_NeoPixel.h>
+#include <WiFi.h>
 #include <esp_timer.h>
-#include "config.h"
-#include "status_bar/status_bar.h"
-#include "led/led.h"
-#include "touch/touch.h"
-#include "micro_sd/micro_sd.h"
+#include <lvgl.h>
+
 #include "app_management/app_management.h"
 #include "app_rainbow.h"
 #include "app_wifi.h"
-#include "keyboard/keyboard.h"
-#include "home/home.h"
+#include "config.h"
 #include "fps/fps.h"
+#include "home/home.h"
+#include "keyboard/keyboard.h"
+#include "led/led.h"
+#include "micro_sd/micro_sd.h"
+#include "status_bar/status_bar.h"
+#include "touch/touch.h"
 
 // Register applications in the app management system here
-void register_apps()
-{
+void register_apps() {
     AppManagement.register_app(AppRainbow);
     AppManagement.register_app(AppWifi);
 }
@@ -27,16 +27,11 @@ void register_apps()
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
 
-uint32_t lv_tick_source(void)
-{
-    return millis();
-}
+uint32_t lv_tick_source(void) { return millis(); }
 
-void lv_touch_read(lv_indev_t *indev, lv_indev_data_t *data)
-{
+void lv_touch_read(lv_indev_t* indev, lv_indev_data_t* data) {
     auto t = Touch.get_touch();
-    if (!t.touched)
-    {
+    if (!t.touched) {
         data->state = LV_INDEV_STATE_RELEASED;
         return;
     }
@@ -46,8 +41,7 @@ void lv_touch_read(lv_indev_t *indev, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_PRESSED;
 }
 
-void setup_tft_backlight_pwm(void)
-{
+void setup_tft_backlight_pwm(void) {
     const int bl_pct_in = TFT_BACKLIGHT_PERCENT;
     unsigned bl_pct;
     if (bl_pct_in < 0)
@@ -57,14 +51,12 @@ void setup_tft_backlight_pwm(void)
     else
         bl_pct = (unsigned)bl_pct_in;
 
-    if (bl_pct == 0)
-    {
+    if (bl_pct == 0) {
         digitalWrite(TFT_BL, TFT_BACKLIGHT_ON == HIGH ? LOW : HIGH);
         return;
     }
 
-    if (bl_pct == 100)
-    {
+    if (bl_pct == 100) {
         digitalWrite(TFT_BL, TFT_BACKLIGHT_ON == HIGH ? HIGH : LOW);
         return;
     }
@@ -101,8 +93,7 @@ void setup_tft_backlight_pwm(void)
     ledcWrite(bl_ledc_channel, bl_duty);
 }
 
-void lvgl_task(void *parameter)
-{
+void lvgl_task(void* parameter) {
     // Bộ canh nhịp khung hình theo microsecond để FPS ra đúng và ổn định.
     //
     // Lý do không dùng `millis()` + `1000 / FPS`:
@@ -114,13 +105,12 @@ void lvgl_task(void *parameter)
     // - Vì `1,000,000 / FPS` cũng bị chia số nguyên, ta bù phần dư để trung bình đúng 60 FPS.
     // Thời gian 1 giây = 1_000_000 μs. Chu kỳ 1 frame (lý tưởng) = 1_000_000 / FPS μs.
     // Chia số nguyên sẽ có phần nguyên + phần dư; ta dùng cả hai để trung bình đúng FPS.
-    const uint32_t frame_period_us = 1000000UL / FPS;         // Phần nguyên mỗi frame (vd FPS=60 → 16666 μs)
-    const uint32_t remainder_us_per_second = 1000000UL % FPS; // Phần dư còn thiếu trong 1 giây (vd 40 μs)
+    const uint32_t frame_period_us = 1000000UL / FPS;          // Phần nguyên mỗi frame (vd FPS=60 → 16666 μs)
+    const uint32_t remainder_us_per_second = 1000000UL % FPS;  // Phần dư còn thiếu trong 1 giây (vd 40 μs)
     uint32_t remainder_accumulator = 0;
     int64_t next_frame_deadline_us = esp_timer_get_time();
 
-    while (true)
-    {
+    while (true) {
         Fps.loop_ui();
         StatusBar.loop_ui();
         AppManagement.loop_ui();
@@ -148,8 +138,7 @@ void lvgl_task(void *parameter)
         // → trung bình đúng 60 FPS.
         next_frame_deadline_us += frame_period_us;
         remainder_accumulator += remainder_us_per_second;
-        if (remainder_accumulator >= (uint32_t)FPS)
-        {
+        if (remainder_accumulator >= (uint32_t)FPS) {
             next_frame_deadline_us += 1;
             remainder_accumulator -= (uint32_t)FPS;
         }
@@ -161,8 +150,7 @@ void lvgl_task(void *parameter)
         //
         // now_us: “bây giờ” theo microsecond. So sánh với deadline để biết còn phải chờ bao lâu.
         int64_t now_us = esp_timer_get_time();
-        if (now_us < next_frame_deadline_us)
-        {
+        if (now_us < next_frame_deadline_us) {
             // Khoảng còn lại tới deadline (luôn > 0 trong nhánh này).
             uint32_t wait_us = (uint32_t)(next_frame_deadline_us - now_us);
 
@@ -171,8 +159,7 @@ void lvgl_task(void *parameter)
             // - Nếu gọi vTaskDelay sát deadline, tick làm tròn có thể ngủ **quá lâu** và vượt deadline.
             // Vì vậy chỉ dùng vTaskDelay khi còn khá nhiều thời gian (>= 2000 μs), và chỉ ngủ **ít hơn**
             // khoảng cần thiết một chút: chuyển (wait_us - 1000) / 1000 → ms, để chừa ~1ms cho bước sau.
-            if (wait_us >= 2000)
-            {
+            if (wait_us >= 2000) {
                 const uint32_t wait_ms = (wait_us - 1000) / 1000;
                 vTaskDelay(pdMS_TO_TICKS(wait_ms));
             }
@@ -181,12 +168,9 @@ void lvgl_task(void *parameter)
             // - Vòng while liên tục đọc esp_timer_get_time() cho tới deadline.
             // - Tốn CPU trong khoảng thời gian rất ngắn (thường < ~1ms sau bước chờ thô), nhưng giúp
             //   chạm mốc μs chính xác hơn nhiều so với chỉ dùng vTaskDelay.
-            while (esp_timer_get_time() < next_frame_deadline_us)
-            {
+            while (esp_timer_get_time() < next_frame_deadline_us) {
             }
-        }
-        else
-        {
+        } else {
             // Đã trễ: xử lý mất nhiều thời gian hơn một chu kỳ frame (now_us >= deadline).
             // Nếu vẫn giữ deadline cũ và tiếp tục cộng chu kỳ, các deadline sẽ nằm **trong quá khứ**
             // liên tục → vòng lặp hầu như không chờ được, số FPS đo được không còn ổn định.
@@ -196,20 +180,17 @@ void lvgl_task(void *parameter)
     }
 }
 
-void loop_task(void *parameter)
-{
-    while (true)
-    {
+void loop_task(void* parameter) {
+    while (true) {
         TimeSync.loop();
         AppManagement.loop();
         vTaskDelay(pdMS_TO_TICKS(250));
     }
 }
 
-void setup()
-{
+void setup() {
     Serial.begin(115200);
-    delay(2500); // Allow time for Serial to initialize
+    delay(2500);  // Allow time for Serial to initialize
 
     Serial.println("[Setup] Begin setup");
 
@@ -219,7 +200,7 @@ void setup()
     auto disp = lv_tft_espi_create(TFT_WIDTH, TFT_HEIGHT, draw_buf, sizeof(draw_buf));
     lv_display_set_rotation(disp, TFT_ROTATION);
 
-    lv_theme_t *theme = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_PURPLE), true, &font_custom_merged);
+    lv_theme_t* theme = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_PURPLE), true, &font_custom_merged);
     lv_display_set_theme(disp, theme);
 
     // Initialize the (dummy) input device driver
@@ -229,13 +210,12 @@ void setup()
 
     // lv_tft_espi_create() allocates its own TFT_eSPI (see LVGL lv_tft_espi.cpp).
     // Invert must run on that internal instance.
-    typedef struct
-    {
-        TFT_eSPI *tft;
+    typedef struct {
+        TFT_eSPI* tft;
     } display_driver_data_t;
-    auto tft_dsc = static_cast<display_driver_data_t *>(lv_display_get_driver_data(disp));
-    if (tft_dsc && tft_dsc->tft)
-    {
+
+    auto tft_dsc = static_cast<display_driver_data_t*>(lv_display_get_driver_data(disp));
+    if (tft_dsc && tft_dsc->tft) {
         tft_dsc->tft->invertDisplay(true);
         tft_dsc->tft->fillScreen(TFT_BLACK);
     }
@@ -263,29 +243,28 @@ void setup()
     AppManagement.set_home_screen(Home.get_screen());
 
     xTaskCreatePinnedToCore(
-        lvgl_task,            // Task function
-        "lvgl_task",          // Task name
-        10000,                // Stack size (bytes)
-        NULL,                 // Parameters
-        configMAX_PRIORITIES, // Priority
-        nullptr,              // Task handle
-        0                     // Core 0
+        lvgl_task,             // Task function
+        "lvgl_task",           // Task name
+        10000,                 // Stack size (bytes)
+        NULL,                  // Parameters
+        configMAX_PRIORITIES,  // Priority
+        nullptr,               // Task handle
+        0                      // Core 0
     );
 
     xTaskCreatePinnedToCore(
-        loop_task,   // Task function
-        "loop_task", // Task name
-        10000,       // Stack size (bytes)
-        NULL,        // Parameters
-        1,           // Priority
-        nullptr,     // Task handle
-        1            // Core 0
+        loop_task,    // Task function
+        "loop_task",  // Task name
+        10000,        // Stack size (bytes)
+        NULL,         // Parameters
+        1,            // Priority
+        nullptr,      // Task handle
+        1             // Core 0
     );
 
     Serial.println("[Setup] End setup");
 }
 
-void loop()
-{
+void loop() {
     // Main loop can perform other tasks or remain empty
 }
