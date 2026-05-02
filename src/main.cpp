@@ -8,8 +8,8 @@
 
 #include <cstring>
 
-#include "applications/app_rainbow.h"
-#include "applications/app_wifi.h"
+#include "applications/rainbow/app_rainbow.h"
+#include "applications/wifi/app_wifi.h"
 #include "config.h"
 #include "modules/app_management/app_management.h"
 #include "modules/fps/fps.h"
