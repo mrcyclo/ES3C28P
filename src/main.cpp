@@ -4,7 +4,6 @@
 #include <FS.h>
 #include <TFT_eSPI.h>
 #include <WiFi.h>
-#include <esp_timer.h>
 #include <lvgl.h>
 
 #include <cstring>
@@ -45,7 +44,7 @@ void lv_touch_read(lv_indev_t* indev, lv_indev_data_t* data) {
 }
 
 void setup_tft_backlight_pwm(void) {
-    const int bl_pct_in = TFT_BACKLIGHT_PERCENT;
+    auto bl_pct_in = TFT_BACKLIGHT_PERCENT;
     unsigned bl_pct;
     if (bl_pct_in < 0)
         bl_pct = 0u;
@@ -76,7 +75,7 @@ void setup_tft_backlight_pwm(void) {
 
     // Linear map of percent to raw duty (before optional polarity flip).
     // Ánh xạ tuyến tính từ % sang duty thô (trước khi đảo cực nếu có).
-    uint32_t bl_duty = (bl_pwm_max * bl_pct) / 100u;
+    auto bl_duty = (bl_pwm_max * bl_pct) / 100u;
 #if TFT_BACKLIGHT_ON == LOW
     // Active-low drive: invert duty so “more percent” still means brighter.
     // Điều khiển active-low: đảo duty để % càng cao vẫn tương ứng càng sáng.
@@ -97,89 +96,23 @@ void setup_tft_backlight_pwm(void) {
 }
 
 void lvgl_task(void* parameter) {
-    // Bộ canh nhịp khung hình theo microsecond để FPS ra đúng và ổn định.
-    //
-    // Lý do không dùng `millis()` + `1000 / FPS`:
-    // - `1000 / 60` bị chia số nguyên => 16ms (thực tế cần 16.666...ms) nên FPS sẽ bị lệch (thường ~62.5 hoặc cao hơn).
-    // - `millis()` có độ phân giải 1ms nên càng làm sai số tích lũy rõ hơn.
-    //
-    // Cách làm ở đây:
-    // - Mỗi frame tăng deadline theo microsecond.
-    // - Vì `1,000,000 / FPS` cũng bị chia số nguyên, ta bù phần dư để trung bình đúng 60 FPS.
-    // Thời gian 1 giây = 1_000_000 μs. Chu kỳ 1 frame (lý tưởng) = 1_000_000 / FPS μs.
-    // Chia số nguyên sẽ có phần nguyên + phần dư; ta dùng cả hai để trung bình đúng FPS.
-    const uint32_t frame_period_us = 1000000UL / FPS;          // Phần nguyên mỗi frame (vd FPS=60 → 16666 μs)
-    const uint32_t remainder_us_per_second = 1000000UL % FPS;  // Phần dư còn thiếu trong 1 giây (vd 40 μs)
-    uint32_t remainder_accumulator = 0;
-    int64_t next_frame_deadline_us = esp_timer_get_time();
-
+    // Lịch chạy adaptive bám theo `lv_timer_handler()`:
+    // - Khi UI tĩnh, LVGL trả `LV_NO_TIMER_READY` (rất lớn) → task ngủ tới `LVGL_MAX_IDLE_MS`,
+    //   CPU Core 0 gần như rảnh, giảm nhiệt rõ rệt.
+    // - Khi có animation/dirty, LVGL trả khoảng `LV_DEF_REFR_PERIOD` ms (33ms ~ 30 FPS) →
+    //   task ngủ đúng tới lần render kế. Không busy-wait, không deadline cứng.
     while (true) {
         Fps.loop_ui();
         StatusBar.loop_ui();
         AppManagement.loop_ui();
         Home.loop_ui();
 
-        lv_timer_handler();
+        auto next_ms = lv_timer_handler();
 
-        // Serial.printf("Task Stack Free: %u bytes\n", uxTaskGetStackHighWaterMark(NULL));
+        if (next_ms < LVGL_MIN_PERIOD_MS) next_ms = LVGL_MIN_PERIOD_MS;
+        if (next_ms > LVGL_MAX_IDLE_MS) next_ms = LVGL_MAX_IDLE_MS;
 
-        // --- Cập nhật mốc thời gian frame kế (next_frame_deadline_us) + bù phần dư chia số nguyên ---
-        //
-        // Ví dụ FPS = 60: chu kỳ lý tưởng = 1_000_000 / 60 = 16666.666... μs.
-        // Máy chỉ cộng số nguyên được, nên ta lấy:
-        //   frame_period_us = 16666, remainder_us_per_second = 40.
-        //
-        // Nếu mỗi frame chỉ cộng 16666 μs thì sau 60 frame ta có 60 × 16666 = 999_960 μs,
-        // thiếu 40 μs so với đúng 1 giây → FPS thực tế sẽ hơi cao hơn 60 nếu không bù.
-        //
-        // Cách bù: mỗi frame cộng remainder_us_per_second vào remainder_accumulator.
-        // Khi accumulator >= FPS: deadline nhận thêm 1 μs (bù một phần của tổng dư trong giây),
-        // rồi trừ accumulator đi FPS để tiếp tục tích lũy cho các lần bù sau (không bù trùng).
-        //
-        // Với FPS=60, dư 40: trong đúng 60 frame liên tiếp, thuật toán sẽ chèn tổng cộng 40 lần +1 μs
-        // (xen kẽ giữa các frame chỉ tăng frame_period_us), nên tổng thời gian 60 frame = 1_000_000 μs
-        // → trung bình đúng 60 FPS.
-        next_frame_deadline_us += frame_period_us;
-        remainder_accumulator += remainder_us_per_second;
-        if (remainder_accumulator >= (uint32_t)FPS) {
-            next_frame_deadline_us += 1;
-            remainder_accumulator -= (uint32_t)FPS;
-        }
-
-        // --- Chờ đến đúng mốc next_frame_deadline_us (đồng hồ esp_timer, đơn vị μs) ---
-        //
-        // Mục tiêu: sau khi xử lý xong (LVGL + status bar...), task ngủ cho tới đúng thời điểm
-        // bắt đầu frame kế, để chu kỳ trung bình bám sát FPS đã tính ở trên.
-        //
-        // now_us: “bây giờ” theo microsecond. So sánh với deadline để biết còn phải chờ bao lâu.
-        int64_t now_us = esp_timer_get_time();
-        if (now_us < next_frame_deadline_us) {
-            // Khoảng còn lại tới deadline (luôn > 0 trong nhánh này).
-            uint32_t wait_us = (uint32_t)(next_frame_deadline_us - now_us);
-
-            // Chờ thô bằng vTaskDelay:
-            // - FreeRTOS chỉ “ngủ” theo bội số tick (thường 1 tick ≈ 1ms), không chờ chính xác từng μs.
-            // - Nếu gọi vTaskDelay sát deadline, tick làm tròn có thể ngủ **quá lâu** và vượt deadline.
-            // Vì vậy chỉ dùng vTaskDelay khi còn khá nhiều thời gian (>= 2000 μs), và chỉ ngủ **ít hơn**
-            // khoảng cần thiết một chút: chuyển (wait_us - 1000) / 1000 → ms, để chừa ~1ms cho bước sau.
-            if (wait_us >= 2000) {
-                const uint32_t wait_ms = (wait_us - 1000) / 1000;
-                vTaskDelay(pdMS_TO_TICKS(wait_ms));
-            }
-
-            // Chờ tinh (busy-wait):
-            // - Vòng while liên tục đọc esp_timer_get_time() cho tới deadline.
-            // - Tốn CPU trong khoảng thời gian rất ngắn (thường < ~1ms sau bước chờ thô), nhưng giúp
-            //   chạm mốc μs chính xác hơn nhiều so với chỉ dùng vTaskDelay.
-            while (esp_timer_get_time() < next_frame_deadline_us) {
-            }
-        } else {
-            // Đã trễ: xử lý mất nhiều thời gian hơn một chu kỳ frame (now_us >= deadline).
-            // Nếu vẫn giữ deadline cũ và tiếp tục cộng chu kỳ, các deadline sẽ nằm **trong quá khứ**
-            // liên tục → vòng lặp hầu như không chờ được, số FPS đo được không còn ổn định.
-            // Resync: coi “mốc hiện tại” là now_us và bắt đầu lại lịch từ đây (bỏ nợ các frame đã lỡ).
-            next_frame_deadline_us = now_us;
-        }
+        vTaskDelay(pdMS_TO_TICKS(next_ms));
     }
 }
 
@@ -199,26 +132,26 @@ void wifi_setup() {
     String pass_to_use;
 
     if (MicroSD.is_mounted()) {
-        File f = MicroSD.fs().open(APP_WIFI_JSON_PATH, FILE_READ);
+        auto f = MicroSD.fs().open(APP_WIFI_JSON_PATH, FILE_READ);
         if (f) {
-            JsonDocument doc;
-            const DeserializationError err = deserializeJson(doc, f);
+            auto doc = JsonDocument();
+            auto err = deserializeJson(doc, f);
             f.close();
 
             if (!err) {
-                const char* connected = doc["connected"];
+                auto connected = doc["connected"].as<const char*>();
                 if (connected && connected[0]) {
                     ssid_to_use = connected;
-                    const JsonArray stored = doc["stored"].as<JsonArray>();
+                    auto stored = doc["stored"].as<JsonArray>();
                     if (!stored.isNull()) {
-                        for (JsonVariant v : stored) {
-                            const JsonObject o = v.as<JsonObject>();
+                        for (auto v : stored) {
+                            auto o = v.as<JsonObject>();
                             if (o.isNull()) continue;
 
-                            const char* s = o["ssid"];
+                            auto s = o["ssid"].as<const char*>();
                             if (!s || std::strcmp(s, connected) != 0) continue;
 
-                            const char* p = o["passpharse"];
+                            auto p = o["passpharse"].as<const char*>();
                             pass_to_use = p ? p : "";
                             break;
                         }
@@ -246,7 +179,7 @@ void setup() {
     auto disp = lv_tft_espi_create(TFT_WIDTH, TFT_HEIGHT, draw_buf, sizeof(draw_buf));
     lv_display_set_rotation(disp, TFT_ROTATION);
 
-    lv_theme_t* theme = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_PURPLE), true, &font_custom_merged);
+    auto theme = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_PURPLE), true, &font_custom_merged);
     lv_display_set_theme(disp, theme);
 
     // Initialize the (dummy) input device driver

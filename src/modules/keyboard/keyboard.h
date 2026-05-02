@@ -47,7 +47,7 @@ private:
 };
 
 inline void keyboard_textarea_event(lv_event_t* e) {
-    auto* self = static_cast<KeyboardClass*>(lv_event_get_user_data(e));
+    auto self = static_cast<KeyboardClass*>(lv_event_get_user_data(e));
     if (!self || !self->keyboard) return;
 
     lv_event_code_t code = lv_event_get_code(e);

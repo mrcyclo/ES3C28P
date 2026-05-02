@@ -1,36 +1,34 @@
 #pragma once
 
-#include <vector>
 #include <lvgl.h>
-#include "config.h"
-#include "micro_sd/micro_sd.h"
-#include "common/helpers.h"
-#include "led/led.h"
-#include "common/imodule.h"
-#include "msgbox/msgbox.h"
+
+#include <string>
+#include <vector>
+
 #include "app_management/app_management.h"
+#include "common/helpers.h"
+#include "common/imodule.h"
+#include "config.h"
+#include "led/led.h"
+#include "micro_sd/micro_sd.h"
+#include "msgbox/msgbox.h"
 
 #define MENU_BUTTON_SIZE 30
 #define APP_ICON_SIZE 48
 
-class HomeClass : public ModuleOnce
-{
+class HomeClass : public ModuleOnce {
 public:
-    void loop_ui() override
-    {
-        if (loaded)
-            return;
+    void loop_ui() override {
+        if (loaded) return;
 
-        if (!MicroSD.is_mounted())
-        {
+        if (!MicroSD.is_mounted()) {
             lv_obj_add_flag(image_wallpaper, LV_OBJ_FLAG_HIDDEN);
             loaded = true;
             return;
         }
 
-        bool ok = MicroSD.lv_read_bmp_dsc_rgb565("/.system/wallpaper.bmp", &wallpaper_dsc, &wallpaper_pixels);
-        if (!ok)
-        {
+        auto ok = MicroSD.lv_read_bmp_dsc_rgb565("/.system/wallpaper.bmp", &wallpaper_dsc, &wallpaper_pixels);
+        if (!ok) {
             lv_obj_add_flag(image_wallpaper, LV_OBJ_FLAG_HIDDEN);
             loaded = true;
             Serial.println("[Home] Failed to load wallpaper.bmp (expected 24-bit uncompressed BMP)");
@@ -45,11 +43,10 @@ public:
 
     void loop() override {}
 
-    lv_obj_t *get_screen() { return screen; }
+    lv_obj_t* get_screen() { return screen; }
 
 protected:
-    void setup_impl() override
-    {
+    void setup_impl() override {
         screen = lv_obj_create(NULL);
         lv_obj_set_style_pad_all(screen, 0, LV_PART_MAIN);
         lv_obj_remove_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
@@ -73,12 +70,11 @@ protected:
 
         static int32_t drawer_col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
 
-        const size_t n = AppManagement.app_count();
-        const size_t rows = (n == 0) ? 1 : (n + 2) / 3;
+        auto n = AppManagement.app_count();
+        auto rows = (n == 0) ? 1u : (n + 2u) / 3u;
         drawer_row_dsc_storage.clear();
         drawer_row_dsc_storage.reserve(rows + 1);
-        for (size_t r = 0; r < rows; ++r)
-            drawer_row_dsc_storage.push_back(APP_ICON_SIZE);
+        for (size_t r = 0; r < rows; ++r) drawer_row_dsc_storage.push_back(APP_ICON_SIZE);
         drawer_row_dsc_storage.push_back(LV_GRID_TEMPLATE_LAST);
 
         drawer = lv_obj_create(content);
@@ -99,24 +95,24 @@ protected:
         lv_obj_set_style_border_width(button_menu, 2, LV_PART_MAIN);
         lv_obj_set_style_border_color(button_menu, lv_color_white(), LV_PART_MAIN);
 
+        auto menu_icon_utf8 = fa(0xf58d);
         auto label_menu = lv_label_create(button_menu);
-        lv_label_set_text(label_menu, fa(0xf58d).c_str());
+        lv_label_set_text(label_menu, menu_icon_utf8.c_str());
         lv_obj_align(label_menu, LV_ALIGN_CENTER, 0, 0);
 
-        for (int32_t i = 0; i < n; ++i)
-        {
-            IApplication *app = AppManagement.app_at(i);
-            const int32_t col = i % 3;
-            const int32_t row = i / 3;
+        for (int32_t i = 0; i < static_cast<int32_t>(n); ++i) {
+            auto app = AppManagement.app_at(static_cast<size_t>(i));
+            auto col = i % 3;
+            auto row = i / 3;
 
-            lv_obj_t *btn = lv_button_create(drawer);
+            auto btn = lv_button_create(drawer);
             lv_obj_set_size(btn, APP_ICON_SIZE, APP_ICON_SIZE);
             lv_obj_set_style_radius(btn, LV_RADIUS_CIRCLE, LV_PART_MAIN);
             lv_obj_set_grid_cell(btn, LV_GRID_ALIGN_CENTER, col, 1, LV_GRID_ALIGN_CENTER, row, 1);
-            lv_obj_add_event_cb(btn, drawer_app_clicked_cb, LV_EVENT_CLICKED, static_cast<void *>(app));
+            lv_obj_add_event_cb(btn, drawer_app_clicked_cb, LV_EVENT_CLICKED, static_cast<void*>(app));
             app->set_drawer_icon(btn);
 
-            lv_obj_t *icon_label = lv_label_create(btn);
+            auto icon_label = lv_label_create(btn);
             lv_obj_align(icon_label, LV_ALIGN_CENTER, 0, 0);
             lv_label_set_text(icon_label, app->get_drawer_icon_text());
         }
@@ -125,39 +121,32 @@ protected:
     }
 
 private:
-    lv_obj_t *screen = nullptr;
-    lv_obj_t *image_wallpaper = nullptr;
+    lv_obj_t* screen = nullptr;
+    lv_obj_t* image_wallpaper = nullptr;
     bool loaded = false;
     lv_image_dsc_t wallpaper_dsc{};
-    uint16_t *wallpaper_pixels = nullptr;
-    lv_obj_t *drawer = nullptr;
+    uint16_t* wallpaper_pixels = nullptr;
+    lv_obj_t* drawer = nullptr;
     bool drawer_open = false;
     std::vector<int32_t> drawer_row_dsc_storage;
 
-    static void drawer_app_clicked_cb(lv_event_t *e)
-    {
-        auto *app = static_cast<IApplication *>(lv_event_get_user_data(e));
+    static void drawer_app_clicked_cb(lv_event_t* e) {
+        auto app = static_cast<IApplication*>(lv_event_get_user_data(e));
         AppManagement.set_current_app(app);
 
-        if (app)
-            app->drawer_icon_clicked();
+        if (app) app->drawer_icon_clicked();
 
         auto screen = app->get_screen();
-        if (screen)
-        {
+        if (screen) {
             lv_scr_load(screen);
         }
     }
 
-    void button_menu_clicked_cb()
-    {
-        if (drawer_open)
-        {
+    void button_menu_clicked_cb() {
+        if (drawer_open) {
             lv_obj_add_flag(drawer, LV_OBJ_FLAG_HIDDEN);
             drawer_open = false;
-        }
-        else
-        {
+        } else {
             lv_obj_remove_flag(drawer, LV_OBJ_FLAG_HIDDEN);
             lv_obj_update_layout(lv_obj_get_parent(drawer));
             drawer_open = true;

@@ -5,7 +5,14 @@
 #define TFT_ROTATION LV_DISPLAY_ROTATION_0
 #define TFT_BACKLIGHT_PERCENT 100
 #define STATUS_BAR_HEIGHT 20
-#define FPS 60
+
+// Adaptive scheduling cho LVGL:
+// - LVGL_MIN_PERIOD_MS  = sàn chu kỳ giữa 2 lần gọi lv_timer_handler() khi có animation/dirty.
+//   Khớp với LV_DEF_REFR_PERIOD (33ms) trong lv_conf.h → cap ~30 FPS.
+// - LVGL_MAX_IDLE_MS    = trần thời gian ngủ khi UI tĩnh (lv_timer_handler trả LV_NO_TIMER_READY).
+//   Đủ nhanh để task vẫn phản ứng input mà không chiếm CPU liên tục.
+#define LVGL_MIN_PERIOD_MS 33U
+#define LVGL_MAX_IDLE_MS 100U
 
 #define APP_WIFI_JSON_PATH "/.system/wifi.json"
 

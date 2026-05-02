@@ -1,66 +1,51 @@
 #pragma once
 
-#include <lvgl.h>
+#include <Arduino.h>
 #include <WiFi.h>
-#include <string>
-#include <vector>
-#include "fps/fps.h"
-#include "time_sync/time_sync.h"
-#include "micro_sd/micro_sd.h"
+#include <lvgl.h>
+
+#include <cstdio>
+#include <cstring>
+
 #include "common/helpers.h"
-#include "msgbox/msgbox.h"
 #include "common/imodule.h"
 #include "config.h"
+#include "fps/fps.h"
+#include "micro_sd/micro_sd.h"
+#include "msgbox/msgbox.h"
+#include "time_sync/time_sync.h"
 
-class StatusBarClass : public ModuleOnce
-{
+#define STATUS_BAR_REFRESH_MS 500U
+#define STATUS_BAR_BUF_SIZE 96
+
+class StatusBarClass : public ModuleOnce {
 public:
-    void loop_ui() override
-    {
-        std::vector<std::string> left_statuses;
-        left_statuses.push_back("#ffffff " + std::to_string(Fps.get_fps()) + "#");
+    void loop_ui() override {
+        // Throttle: status bar chỉ chứa FPS + đồng hồ phút + vài icon → 500ms là quá đủ
+        // và đã đủ smooth cho mắt người. Cắt 60Hz xuống 2Hz giảm rất nhiều tải LVGL.
+        auto now = millis();
+        if (now - last_refresh_ms < STATUS_BAR_REFRESH_MS) return;
+        last_refresh_ms = now;
 
-        std::string left_text;
-        for (size_t i = 0; i < left_statuses.size(); ++i)
-        {
-            if (i > 0)
-                left_text += ' ';
-            left_text += left_statuses[i];
-        }
-        lv_label_set_text(lb_left, left_text.c_str());
-
-        std::vector<std::string> right_statuses;
-        if (MicroSD.is_mounted())
-        {
-            right_statuses.push_back("#ffffff " + fa(0xf7c2) + "#");
-        }
-        if (WiFi.status() == WL_CONNECTED)
-        {
-            right_statuses.push_back("#ffffff " + fa(0xf1eb) + "#");
-        }
-        if (TimeSync.is_synced())
-        {
-            auto time = TimeSync.get_time();
-            char buf[6];
-            snprintf(buf, sizeof(buf), "%02d:%02d", time.tm_hour, time.tm_min);
-            right_statuses.push_back("#ffffff " + std::string(buf) + "#");
+        build_left_text(scratch_buf, sizeof(scratch_buf));
+        if (std::strcmp(scratch_buf, last_left_text) != 0) {
+            std::strncpy(last_left_text, scratch_buf, sizeof(last_left_text) - 1);
+            last_left_text[sizeof(last_left_text) - 1] = '\0';
+            lv_label_set_text(lb_left, last_left_text);
         }
 
-        std::string right_text;
-        for (size_t i = 0; i < right_statuses.size(); ++i)
-        {
-            if (i > 0)
-                right_text += ' ';
-            right_text += right_statuses[i];
+        build_right_text(scratch_buf, sizeof(scratch_buf));
+        if (std::strcmp(scratch_buf, last_right_text) != 0) {
+            std::strncpy(last_right_text, scratch_buf, sizeof(last_right_text) - 1);
+            last_right_text[sizeof(last_right_text) - 1] = '\0';
+            lv_label_set_text(lb_right, last_right_text);
         }
-        lv_label_set_text(lb_right, right_text.c_str());
     }
 
     void loop() override {}
 
 protected:
-    void setup_impl() override
-    {
+    void setup_impl() override {
         auto box = lv_obj_create(lv_layer_sys());
         lv_obj_align(box, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_set_size(box, lv_pct(100), STATUS_BAR_HEIGHT);
@@ -84,8 +69,45 @@ protected:
     }
 
 private:
-    lv_obj_t *lb_left = nullptr;
-    lv_obj_t *lb_right = nullptr;
+    lv_obj_t* lb_left = nullptr;
+    lv_obj_t* lb_right = nullptr;
+    unsigned long last_refresh_ms = 0;
+    char scratch_buf[STATUS_BAR_BUF_SIZE]{};
+    char last_left_text[STATUS_BAR_BUF_SIZE]{};
+    char last_right_text[STATUS_BAR_BUF_SIZE]{};
+
+    void build_left_text(char* buf, size_t buf_size) { std::snprintf(buf, buf_size, "#ffffff %lu#", Fps.get_fps()); }
+
+    void build_right_text(char* buf, size_t buf_size) {
+        size_t pos = 0;
+        auto append = [&](const char* s) {
+            if (!s || pos >= buf_size - 1) return;
+            if (pos > 0 && pos < buf_size - 1) buf[pos++] = ' ';
+            auto left = buf_size - 1 - pos;
+            auto n = std::strlen(s);
+            auto take = n < left ? n : left;
+            std::memcpy(buf + pos, s, take);
+            pos += take;
+            buf[pos] = '\0';
+        };
+
+        if (MicroSD.is_mounted()) {
+            auto s = std::string("#ffffff ") + fa(0xf7c2) + "#";
+            append(s.c_str());
+        }
+        if (WiFi.status() == WL_CONNECTED) {
+            auto s = std::string("#ffffff ") + fa(0xf1eb) + "#";
+            append(s.c_str());
+        }
+        if (TimeSync.is_synced()) {
+            auto t = TimeSync.get_time();
+            char clk[24];
+            std::snprintf(clk, sizeof(clk), "#ffffff %02d:%02d#", t.tm_hour, t.tm_min);
+            append(clk);
+        }
+
+        if (pos == 0) buf[0] = '\0';
+    }
 };
 
 extern StatusBarClass StatusBar;

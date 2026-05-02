@@ -20,11 +20,14 @@
 #define APP_WIFI_SCAN_TASK_STACK 8192
 #define APP_WIFI_SCAN_TASK_PRIORITY 1
 #define APP_WIFI_SCAN_TASK_CORE 1
-#define APP_WIFI_RSSI_REFRESH_MS 400U
+#define APP_WIFI_RSSI_REFRESH_MS 1500U
+#define APP_WIFI_LOOP_UI_THROTTLE_MS 1000U
 
 class AppWifiClass : public Application {
 public:
-    const char* get_drawer_icon_text() override { return fa(0xf1eb).c_str(); }
+    AppWifiClass() : drawer_icon_utf8(fa(0xf1eb)) {}
+
+    const char* get_drawer_icon_text() override { return drawer_icon_utf8.c_str(); }
 
     void drawer_icon_clicked() override {
         if (!screen) {
@@ -64,9 +67,10 @@ public:
             btn_scan_wifi = lv_button_create(ssid_row);
             lv_obj_set_size(btn_scan_wifi, 40, 40);
 
+            auto scan_icon_utf8 = fa(0xf2f1);
             auto lbl_scan = lv_label_create(btn_scan_wifi);
             lv_obj_align(lbl_scan, LV_ALIGN_CENTER, 0, 0);
-            lv_label_set_text(lbl_scan, fa(0xf2f1).c_str());
+            lv_label_set_text(lbl_scan, scan_icon_utf8.c_str());
             lv_obj_add_event_cb(btn_scan_wifi, LV_OBJ_EVENT_CB(AppWifiClass, on_scan_wifi_clicked), LV_EVENT_CLICKED, this);
 
             auto lbl_pw = lv_label_create(panel_setup);
@@ -160,6 +164,19 @@ public:
 
             wifi_evt_sta_connected = WiFi.onEvent([this](arduino_event_id_t, arduino_event_info_t) { show_connected_panel(); }, ARDUINO_EVENT_WIFI_STA_CONNECTED);
             wifi_evt_sta_disconnected = WiFi.onEvent([this](arduino_event_id_t, arduino_event_info_t) { show_setup_panel(); }, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+            // GOT_IP đến sau STA_CONNECTED khi DHCP cấp IP xong → cập nhật lại label IP/RSSI
+            // và clear cờ `connecting` để loop_ui không phải poll WiFi.status() mỗi giây.
+            wifi_evt_sta_got_ip = WiFi.onEvent(
+                [this](arduino_event_id_t, arduino_event_info_t) {
+                    connecting = false;
+                    if (panel_connected) {
+                        refresh_connected_rssi_label();
+                        refresh_connected_ip_label();
+                    }
+                    set_controls_state(true);
+                },
+                ARDUINO_EVENT_WIFI_STA_GOT_IP
+            );
 
             wifi_stored_load_from_sd();
         }
@@ -182,10 +199,20 @@ public:
             WiFi.removeEvent(wifi_evt_sta_disconnected);
             wifi_evt_sta_disconnected = 0;
         }
+        if (wifi_evt_sta_got_ip) {
+            WiFi.removeEvent(wifi_evt_sta_got_ip);
+            wifi_evt_sta_got_ip = 0;
+        }
 
         if (!screen) return;
 
         wifi_stored_entries.clear();
+
+        // Reset cache: widget label sắp bị xoá, lần mở lại sẽ là widget mới (text rỗng).
+        last_rssi_text.clear();
+        last_ip_text.clear();
+        last_loop_ui_ms = 0;
+        last_connected_rssi_ui_ms = 0;
 
         Keyboard.unbind_textarea(input_password);
         Keyboard.dismiss();
@@ -210,33 +237,22 @@ public:
     void loop_ui() override {
         if (!screen) return;
 
-        if (is_scan_wifi_completed) {
-            is_scan_wifi_completed = false;
-            if (dropdown_ssid) {
-                std::string opts;
-                for (size_t i = 0; i < scanned_wifi_names.size(); ++i) {
-                    if (i > 0) opts += '\n';
-                    opts += scanned_wifi_names[i];
-                }
-                lv_dropdown_set_options(dropdown_ssid, opts.c_str());
-                refresh_password_from_stored();
-            }
-            set_controls_state(true);
-        }
+        // Throttle 1Hz: tất cả việc trong loop_ui đều có thể chờ tới 1s mới xử lý:
+        // - Scan-done được lv_async_call gọi trực tiếp, không poll ở đây.
+        // - Connect thành công: event GOT_IP đã clear `connecting`.
+        // - Connect thất bại: timeout check chỉ cần độ chính xác 1s.
+        // - RSSI/IP: thay đổi rất chậm.
+        const unsigned long now = millis();
+        if (now - last_loop_ui_ms < APP_WIFI_LOOP_UI_THROTTLE_MS) return;
+        last_loop_ui_ms = now;
 
-        if (connecting) {
+        if (connecting && now - connect_started_ms >= APP_WIFI_CONNECT_TIMEOUT_MS) {
             connecting = false;
-
-            if (WiFi.status() == WL_CONNECTED) {
-                set_controls_state(true);
-            } else if (millis() - connect_started_ms >= APP_WIFI_CONNECT_TIMEOUT_MS) {
-                WiFi.disconnect();
-                MsgBox.error("Wifi connect failed!", nullptr, [this](bool) { set_controls_state(true); });
-            }
+            WiFi.disconnect();
+            MsgBox.error("Wifi connect failed!", nullptr, [this](bool) { set_controls_state(true); });
         }
 
         if (panel_connected && WiFi.status() == WL_CONNECTED) {
-            const unsigned long now = millis();
             if (now - last_connected_rssi_ui_ms >= APP_WIFI_RSSI_REFRESH_MS) {
                 last_connected_rssi_ui_ms = now;
                 refresh_connected_rssi_label();
@@ -248,12 +264,15 @@ public:
     void loop() override {}
 
 private:
+    // UTF-8 icon phải sống lâu: `fa(...).c_str()` trên temporary là UB → label rỗng/garbage.
+    std::string drawer_icon_utf8;
+
     bool connecting = false;
     unsigned long connect_started_ms = 0;
     unsigned long last_connected_rssi_ui_ms = 0;
+    unsigned long last_loop_ui_ms = 0;
 
     std::vector<std::string> scanned_wifi_names;
-    bool is_scan_wifi_completed = false;
     TaskHandle_t task_handle_wifi_scan = nullptr;
 
     lv_obj_t* panel_connected = nullptr;
@@ -267,8 +286,12 @@ private:
     lv_obj_t* input_password = nullptr;
     lv_obj_t* btn_connect = nullptr;
 
+    std::string last_rssi_text;
+    std::string last_ip_text;
+
     wifi_event_id_t wifi_evt_sta_connected = 0;
     wifi_event_id_t wifi_evt_sta_disconnected = 0;
+    wifi_event_id_t wifi_evt_sta_got_ip = 0;
 
     struct wifi_stored_entry {
         std::string ssid;
@@ -281,23 +304,23 @@ private:
         wifi_stored_entries.clear();
         if (!MicroSD.is_mounted()) return;
 
-        File f = MicroSD.fs().open(APP_WIFI_JSON_PATH, FILE_READ);
+        auto f = MicroSD.fs().open(APP_WIFI_JSON_PATH, FILE_READ);
         if (!f) return;
 
-        JsonDocument doc;
-        const DeserializationError err = deserializeJson(doc, f);
+        auto doc = JsonDocument();
+        auto err = deserializeJson(doc, f);
         f.close();
         if (err) return;
 
-        const JsonArray arr = doc["stored"].as<JsonArray>();
+        auto arr = doc["stored"].as<JsonArray>();
         if (arr.isNull()) return;
 
-        for (JsonVariant v : arr) {
-            const JsonObject o = v.as<JsonObject>();
+        for (auto v : arr) {
+            auto o = v.as<JsonObject>();
             if (o.isNull()) continue;
 
-            const char* s = o["ssid"];
-            const char* p = o["passpharse"];
+            auto s = o["ssid"].as<const char*>();
+            auto p = o["passpharse"].as<const char*>();
             if (!s || !s[0]) continue;
 
             wifi_stored_entry e;
@@ -310,7 +333,7 @@ private:
     void wifi_stored_merge_in_memory(const char* ssid, const char* pass) {
         if (!ssid || !ssid[0]) return;
 
-        const std::string ps = pass ? pass : "";
+        auto ps = std::string(pass ? pass : "");
         for (wifi_stored_entry& e : wifi_stored_entries) {
             if (e.ssid == ssid) {
                 e.passpharse = ps;
@@ -329,16 +352,16 @@ private:
 
         MicroSD.fs().mkdir("/.system");
 
-        JsonDocument doc;
+        auto doc = JsonDocument();
         doc["connected"] = connected_ssid ? connected_ssid : "";
-        JsonArray arr = doc["stored"].to<JsonArray>();
-        for (const wifi_stored_entry& e : wifi_stored_entries) {
-            JsonObject o = arr.add<JsonObject>();
+        auto arr = doc["stored"].to<JsonArray>();
+        for (auto& e : wifi_stored_entries) {
+            auto o = arr.add<JsonObject>();
             o["ssid"] = e.ssid;
             o["passpharse"] = e.passpharse;
         }
 
-        File f = MicroSD.fs().open(APP_WIFI_JSON_PATH, FILE_WRITE);
+        auto f = MicroSD.fs().open(APP_WIFI_JSON_PATH, FILE_WRITE);
         if (!f) {
             Serial.println("[AppWifi] open wifi.json for write failed");
             return false;
@@ -362,7 +385,7 @@ private:
         lv_dropdown_get_selected_str(dropdown_ssid, ssid, sizeof(ssid));
         if (!ssid[0]) return;
 
-        for (const wifi_stored_entry& e : wifi_stored_entries) {
+        for (auto& e : wifi_stored_entries) {
             if (e.ssid != ssid) continue;
             lv_textarea_set_text(input_password, e.passpharse.c_str());
             break;
@@ -378,7 +401,6 @@ private:
         task_handle_wifi_scan = nullptr;
         WiFi.scanDelete();
         scanned_wifi_names.clear();
-        is_scan_wifi_completed = false;
     }
 
     void wifi_scan_task() {
@@ -386,23 +408,41 @@ private:
         WiFi.disconnect();
 
         scanned_wifi_names.clear();
-        const int n = WiFi.scanNetworks();
+        auto n = WiFi.scanNetworks();
         for (int i = 0; i < n; ++i) {
             scanned_wifi_names.push_back(WiFi.SSID(i).c_str());
         }
         WiFi.scanDelete();
 
-        is_scan_wifi_completed = true;
+        // Bàn giao kết quả về thread LVGL qua lv_async_call (thread-safe).
+        // Hàm sẽ chạy 1 lần ở lần `lv_timer_handler()` kế tiếp → không cần poll cờ trong loop_ui.
+        lv_async_call(scan_done_async_cb, this);
 
-        TaskHandle_t self = xTaskGetCurrentTaskHandle();
+        auto self = xTaskGetCurrentTaskHandle();
         task_handle_wifi_scan = nullptr;
         vTaskDelete(self);
+    }
+
+    static void scan_done_async_cb(void* user_data) {
+        auto self = static_cast<AppWifiClass*>(user_data);
+        if (!self || !self->screen) return;
+
+        if (self->dropdown_ssid) {
+            auto opts = std::string();
+            for (size_t i = 0; i < self->scanned_wifi_names.size(); ++i) {
+                if (i > 0) opts += '\n';
+                opts += self->scanned_wifi_names[i];
+            }
+            lv_dropdown_set_options(self->dropdown_ssid, opts.c_str());
+            self->refresh_password_from_stored();
+        }
+        self->set_controls_state(true);
     }
 
     bool start_wifi_scan_task() {
         if (task_handle_wifi_scan != nullptr) return true;
 
-        const BaseType_t ok = xTaskCreatePinnedToCore(
+        auto ok = xTaskCreatePinnedToCore(
             FREERTOS_TASK_CB(AppWifiClass, wifi_scan_task),
             "app_wifi_scan_task",
             APP_WIFI_SCAN_TASK_STACK,
@@ -450,17 +490,24 @@ private:
 
     void refresh_connected_rssi_label() {
         if (!label_connected_rssi) return;
-        lv_label_set_text_fmt(label_connected_rssi, "%d dBm", WiFi.RSSI());
+        char buf[16];
+        std::snprintf(buf, sizeof(buf), "%d dBm", (int)WiFi.RSSI());
+        if (last_rssi_text == buf) return;
+        last_rssi_text = buf;
+        lv_label_set_text(label_connected_rssi, buf);
     }
 
     void refresh_connected_ip_label() {
         if (!label_connected_ip) return;
-        const String ip = WiFi.localIP().toString();
-        lv_label_set_text(label_connected_ip, ip.length() && ip != "0.0.0.0" ? ip.c_str() : "(none)");
+        auto ip = WiFi.localIP().toString();
+        const char* show = (ip.length() && ip != "0.0.0.0") ? ip.c_str() : "(none)";
+        if (last_ip_text == show) return;
+        last_ip_text = show;
+        lv_label_set_text(label_connected_ip, show);
     }
 
     void show_connected_panel() {
-        const String ssid = WiFi.SSID();
+        auto ssid = WiFi.SSID();
         lv_label_set_text(label_connected_ssid, ssid.length() ? ssid.c_str() : "(unknown)");
 
         refresh_connected_rssi_label();
