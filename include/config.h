@@ -3,7 +3,7 @@
 #include <lvgl.h>
 
 #define TFT_ROTATION LV_DISPLAY_ROTATION_0
-#define TFT_BACKLIGHT_PERCENT 100
+#define TFT_BACKLIGHT_PERCENT 50
 #define STATUS_BAR_HEIGHT 20
 
 // Adaptive scheduling cho LVGL:
