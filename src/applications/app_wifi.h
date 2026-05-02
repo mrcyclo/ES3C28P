@@ -18,6 +18,7 @@
 #define APP_WIFI_SCAN_TASK_STACK 8192
 #define APP_WIFI_SCAN_TASK_PRIORITY 1
 #define APP_WIFI_SCAN_TASK_CORE 1
+#define APP_WIFI_RSSI_REFRESH_MS 400U
 
 class AppWifiClass : public Application {
 public:
@@ -90,19 +91,69 @@ public:
             lv_obj_set_style_bg_opa(panel_connected, LV_OPA_TRANSP, LV_PART_MAIN);
             lv_obj_remove_flag(panel_connected, LV_OBJ_FLAG_SCROLLABLE);
 
-            auto lbl_status = lv_label_create(panel_connected);
+            auto row_connected_status = lv_obj_create(panel_connected);
+            lv_obj_set_width(row_connected_status, lv_pct(100));
+            lv_obj_set_height(row_connected_status, LV_SIZE_CONTENT);
+            lv_obj_align(row_connected_status, LV_ALIGN_TOP_LEFT, 0, 0);
+            lv_obj_set_layout(row_connected_status, LV_LAYOUT_FLEX);
+            lv_obj_set_flex_flow(row_connected_status, LV_FLEX_FLOW_ROW);
+            lv_obj_set_flex_align(row_connected_status, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+            lv_obj_set_style_pad_column(row_connected_status, 8, LV_PART_MAIN);
+            lv_obj_set_style_pad_all(row_connected_status, 0, LV_PART_MAIN);
+            lv_obj_set_style_border_width(row_connected_status, 0, LV_PART_MAIN);
+            lv_obj_set_style_bg_opa(row_connected_status, LV_OPA_TRANSP, LV_PART_MAIN);
+
+            auto lbl_status = lv_label_create(row_connected_status);
             lv_label_set_text(lbl_status, "Connected to");
-            label_connected_ssid = lv_label_create(panel_connected);
-            lv_obj_align_to(label_connected_ssid, lbl_status, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);
-            lv_label_set_long_mode(label_connected_ssid, LV_LABEL_LONG_WRAP);
-            lv_obj_set_width(label_connected_ssid, lv_pct(100));
+
+            label_connected_ssid = lv_label_create(row_connected_status);
+            lv_obj_set_flex_grow(label_connected_ssid, 1);
+            lv_label_set_long_mode(label_connected_ssid, LV_LABEL_LONG_MODE_DOTS);
+
+            auto row_connected_rssi = lv_obj_create(panel_connected);
+            lv_obj_set_width(row_connected_rssi, lv_pct(100));
+            lv_obj_set_height(row_connected_rssi, LV_SIZE_CONTENT);
+            lv_obj_align_to(row_connected_rssi, row_connected_status, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
+            lv_obj_set_layout(row_connected_rssi, LV_LAYOUT_FLEX);
+            lv_obj_set_flex_flow(row_connected_rssi, LV_FLEX_FLOW_ROW);
+            lv_obj_set_flex_align(row_connected_rssi, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+            lv_obj_set_style_pad_column(row_connected_rssi, 8, LV_PART_MAIN);
+            lv_obj_set_style_pad_all(row_connected_rssi, 0, LV_PART_MAIN);
+            lv_obj_set_style_border_width(row_connected_rssi, 0, LV_PART_MAIN);
+            lv_obj_set_style_bg_opa(row_connected_rssi, LV_OPA_TRANSP, LV_PART_MAIN);
+
+            auto lbl_rssi = lv_label_create(row_connected_rssi);
+            lv_label_set_text(lbl_rssi, "RSSI:");
+
+            label_connected_rssi = lv_label_create(row_connected_rssi);
+            lv_obj_set_flex_grow(label_connected_rssi, 1);
+            lv_label_set_long_mode(label_connected_rssi, LV_LABEL_LONG_MODE_CLIP);
+
+            auto row_connected_ip = lv_obj_create(panel_connected);
+            lv_obj_set_width(row_connected_ip, lv_pct(100));
+            lv_obj_set_height(row_connected_ip, LV_SIZE_CONTENT);
+            lv_obj_align_to(row_connected_ip, row_connected_rssi, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
+            lv_obj_set_layout(row_connected_ip, LV_LAYOUT_FLEX);
+            lv_obj_set_flex_flow(row_connected_ip, LV_FLEX_FLOW_ROW);
+            lv_obj_set_flex_align(row_connected_ip, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+            lv_obj_set_style_pad_column(row_connected_ip, 8, LV_PART_MAIN);
+            lv_obj_set_style_pad_all(row_connected_ip, 0, LV_PART_MAIN);
+            lv_obj_set_style_border_width(row_connected_ip, 0, LV_PART_MAIN);
+            lv_obj_set_style_bg_opa(row_connected_ip, LV_OPA_TRANSP, LV_PART_MAIN);
+
+            auto lbl_ip = lv_label_create(row_connected_ip);
+            lv_label_set_text(lbl_ip, "IP:");
+
+            label_connected_ip = lv_label_create(row_connected_ip);
+            lv_obj_set_flex_grow(label_connected_ip, 1);
+            lv_label_set_long_mode(label_connected_ip, LV_LABEL_LONG_MODE_DOTS);
 
             btn_disconnect = lv_button_create(panel_connected);
             auto lbl_disc = lv_label_create(btn_disconnect);
             lv_obj_align(lbl_disc, LV_ALIGN_CENTER, 0, 0);
             lv_label_set_text(lbl_disc, "Disconnect");
             lv_obj_add_event_cb(btn_disconnect, LV_OBJ_EVENT_CB(AppWifiClass, on_disconnect_clicked), LV_EVENT_CLICKED, this);
-            lv_obj_align_to(btn_disconnect, label_connected_ssid, LV_ALIGN_OUT_BOTTOM_MID, 0, 16);
+            lv_obj_align_to(btn_disconnect, row_connected_ip, LV_ALIGN_OUT_BOTTOM_MID, 0, 16);
 
             wifi_evt_sta_connected = WiFi.onEvent([this](arduino_event_id_t, arduino_event_info_t) { show_connected_panel(); }, ARDUINO_EVENT_WIFI_STA_CONNECTED);
             wifi_evt_sta_disconnected = WiFi.onEvent([this](arduino_event_id_t, arduino_event_info_t) { show_setup_panel(); }, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
@@ -140,6 +191,8 @@ public:
         panel_connected = nullptr;
         panel_setup = nullptr;
         label_connected_ssid = nullptr;
+        label_connected_rssi = nullptr;
+        label_connected_ip = nullptr;
         btn_disconnect = nullptr;
         dropdown_ssid = nullptr;
         btn_scan_wifi = nullptr;
@@ -173,6 +226,14 @@ public:
                 MsgBox.error("Wifi connect failed!", nullptr, [this](bool) { set_controls_state(true); });
             }
         }
+
+        if (panel_connected && label_connected_rssi && WiFi.status() == WL_CONNECTED) {
+            const unsigned long now = millis();
+            if (now - last_connected_rssi_ui_ms >= APP_WIFI_RSSI_REFRESH_MS) {
+                last_connected_rssi_ui_ms = now;
+                refresh_connected_rssi_label();
+            }
+        }
     }
 
     void loop() override {}
@@ -180,6 +241,7 @@ public:
 private:
     bool connecting = false;
     unsigned long connect_started_ms = 0;
+    unsigned long last_connected_rssi_ui_ms = 0;
 
     std::vector<std::string> scanned_wifi_names;
     bool is_scan_wifi_completed = false;
@@ -188,6 +250,8 @@ private:
     lv_obj_t* panel_connected = nullptr;
     lv_obj_t* panel_setup = nullptr;
     lv_obj_t* label_connected_ssid = nullptr;
+    lv_obj_t* label_connected_rssi = nullptr;
+    lv_obj_t* label_connected_ip = nullptr;
     lv_obj_t* btn_disconnect = nullptr;
     lv_obj_t* dropdown_ssid = nullptr;
     lv_obj_t* btn_scan_wifi = nullptr;
@@ -274,9 +338,20 @@ private:
         }
     }
 
+    void refresh_connected_rssi_label() {
+        if (!label_connected_rssi) return;
+        lv_label_set_text_fmt(label_connected_rssi, "%d dBm", WiFi.RSSI());
+    }
+
     void show_connected_panel() {
-        const String s = WiFi.SSID();
-        lv_label_set_text(label_connected_ssid, s.length() ? s.c_str() : "(unknown)");
+        const String ssid = WiFi.SSID();
+        lv_label_set_text(label_connected_ssid, ssid.length() ? ssid.c_str() : "(unknown)");
+
+        refresh_connected_rssi_label();
+        last_connected_rssi_ui_ms = millis();
+
+        const String ip = WiFi.localIP().toString();
+        lv_label_set_text(label_connected_ip, ip.length() ? ip.c_str() : "(none)");
 
         lv_obj_remove_flag(panel_connected, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(panel_setup, LV_OBJ_FLAG_HIDDEN);

@@ -2,10 +2,6 @@
 alwaysApply: true
 ---
 
-## Cursor auto-generates
-
-When Cursor auto-generates a Git commit message for this repository, I would like you to use English and commit message less than 100 characters.
-
 ## Code style
 
 - **Early return:** Prefer guard clauses at the top of a function (`if (!precondition) return;` or `return false;`). Handle invalid state first so the “happy path” stays flat and readable at the bottom.
