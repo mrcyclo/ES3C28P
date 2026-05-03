@@ -17,6 +17,7 @@
 
 #define APP_PC_MONITOR_HTTP_PORT 80
 #define APP_PC_MONITOR_MAX_BODY 4096
+#define APP_PC_MONITOR_STALE_MS 10000U
 
 class AppPcMonitorClass : public Application {
 public:
@@ -67,6 +68,11 @@ public:
         post_accum.clear();
         post_overflow = false;
 
+        monitor_ever_received = false;
+        stale_defaults_applied = false;
+        last_monitor_rx_ms = 0;
+        pending_placeholder_render = false;
+
         {
             const std::lock_guard<std::mutex> lock(mtx);
             pending = MonitorSnapshot{};
@@ -111,13 +117,29 @@ public:
 
         MonitorSnapshot snap;
         bool do_render = false;
+        bool do_placeholder = false;
         {
             const std::lock_guard<std::mutex> lock(mtx);
+            if (monitor_ever_received && !stale_defaults_applied && (now - last_monitor_rx_ms >= APP_PC_MONITOR_STALE_MS)) {
+                pending_placeholder_render = true;
+                pending_dirty = true;
+                stale_defaults_applied = true;
+            }
             if (pending_dirty) {
                 pending_dirty = false;
-                snap = pending;
-                do_render = snap.valid;
+                if (pending_placeholder_render) {
+                    pending_placeholder_render = false;
+                    do_placeholder = true;
+                } else {
+                    snap = pending;
+                    do_render = snap.valid;
+                }
             }
+        }
+
+        if (do_placeholder) {
+            apply_monitor_boot_placeholders();
+            return;
         }
 
         if (!do_render) return;
@@ -203,6 +225,11 @@ private:
     std::mutex mtx;
     MonitorSnapshot pending{};
     bool pending_dirty = false;
+
+    unsigned long last_monitor_rx_ms = 0;
+    bool monitor_ever_received = false;
+    bool stale_defaults_applied = false;
+    bool pending_placeholder_render = false;
 
     std::unique_ptr<AsyncWebServer> web_server;
     bool web_server_started = false;
@@ -350,9 +377,47 @@ private:
             const std::lock_guard<std::mutex> lock(mtx);
             pending = s;
             pending_dirty = true;
+            pending_placeholder_render = false;
+            last_monitor_rx_ms = millis();
+            monitor_ever_received = true;
+            stale_defaults_applied = false;
         }
 
         request->send(200, "application/json", "{\"ok\":true}");
+    }
+
+    void apply_monitor_boot_placeholders() {
+        if (arc_cpu) lv_arc_set_value(arc_cpu, 0);
+        if (lbl_cpu_arc_pct) {
+            lv_label_set_text(
+                lbl_cpu_arc_pct,
+                "--%\n--\xC2\xB0"
+                "C"
+            );
+        }
+        if (lbl_cpu_detail) lv_label_set_text(lbl_cpu_detail, "-");
+
+        if (arc_mem) lv_arc_set_value(arc_mem, 0);
+        if (lbl_mem_arc_pct) {
+            lv_label_set_text(
+                lbl_mem_arc_pct,
+                "--%\n--\xC2\xB0"
+                "C"
+            );
+        }
+        if (lbl_mem_detail) lv_label_set_text(lbl_mem_detail, "-");
+
+        if (arc_gpu) lv_arc_set_value(arc_gpu, 0);
+        if (lbl_gpu_arc_pct) {
+            lv_label_set_text(
+                lbl_gpu_arc_pct,
+                "--%\n--\xC2\xB0"
+                "C"
+            );
+        }
+        if (lbl_gpu_detail) lv_label_set_text(lbl_gpu_detail, "-");
+
+        if (lbl_net_detail) lv_label_set_text(lbl_net_detail, "TX / RX");
     }
 
     static void style_arc_gauge(lv_obj_t* arc) {
