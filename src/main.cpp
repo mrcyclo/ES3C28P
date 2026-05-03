@@ -10,6 +10,7 @@
 
 #include "applications/pc_monitor/app_pc_monitor.h"
 #include "applications/rainbow/app_rainbow.h"
+#include "applications/weather/app_weather.h"
 #include "applications/wifi/app_wifi.h"
 #include "config.h"
 #include "modules/app_management/app_management.h"
@@ -26,6 +27,7 @@ void register_apps() {
     AppManagement.register_app(AppRainbow);
     AppManagement.register_app(AppWifi);
     AppManagement.register_app(AppPcMonitor);
+    AppManagement.register_app(AppWeather);
 }
 
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
