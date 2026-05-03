@@ -137,7 +137,7 @@ public:
         }
         if (lbl_cpu_detail) {
             char buf[32];
-            std::snprintf(buf, sizeof(buf), "%.0f MHz", snap.cpu_clock);
+            std::snprintf(buf, sizeof(buf), "%.2f GHz", snap.cpu_clock);
             lv_label_set_text(lbl_cpu_detail, buf);
         }
 
@@ -149,7 +149,7 @@ public:
         }
         if (lbl_mem_detail) {
             char buf[48];
-            std::snprintf(buf, sizeof(buf), "%.1f / %.1f GB", snap.mem_used / 1e9, snap.mem_total / 1e9);
+            std::snprintf(buf, sizeof(buf), "%.1f / %.1f GB", snap.mem_used, snap.mem_total);
             lv_label_set_text(lbl_mem_detail, buf);
         }
 
@@ -168,13 +168,13 @@ public:
         }
         if (lbl_gpu_detail) {
             char buf[40];
-            std::snprintf(buf, sizeof(buf), "%.0f / %.0f MB", snap.gpu_mem_used, snap.gpu_mem_total);
+            std::snprintf(buf, sizeof(buf), "%.1f / %.1f GB", snap.gpu_mem_used, snap.gpu_mem_total);
             lv_label_set_text(lbl_gpu_detail, buf);
         }
 
         if (lbl_net_detail) {
             char buf[64];
-            std::snprintf(buf, sizeof(buf), "TX: %.2f MB\nRX: %.2f MB", snap.net_sent / 1e6, snap.net_recv / 1e6);
+            std::snprintf(buf, sizeof(buf), "TX: %.1f Mbps\nRX: %.1f Mbps", snap.net_sent, snap.net_recv);
             lv_label_set_text(lbl_net_detail, buf);
         }
     }
@@ -371,7 +371,7 @@ private:
         lv_obj_set_layout(cell, LV_LAYOUT_FLEX);
         lv_obj_set_flex_flow(cell, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_flex_align(cell, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-        lv_obj_set_style_pad_all(cell, 2, LV_PART_MAIN);
+        lv_obj_set_style_pad_all(cell, 0, LV_PART_MAIN);
         lv_obj_set_style_border_width(cell, 1, LV_PART_MAIN);
         lv_obj_set_style_border_color(cell, lv_palette_main(LV_PALETTE_GREY), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(cell, LV_OPA_30, LV_PART_MAIN);
