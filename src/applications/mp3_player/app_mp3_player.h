@@ -11,6 +11,7 @@
 #include "es8311.h"
 #include "modules/common/helpers.h"
 #include "modules/common/iapplication.h"
+#include "modules/led/led.h"
 #include "modules/micro_sd/micro_sd.h"
 #include "modules/msgbox/msgbox.h"
 
@@ -32,6 +33,9 @@
 #define APP_MP3_PLAYER_PLAYING_TASK_STACK 10000
 #define APP_MP3_PLAYER_PLAYING_TASK_PRIORITY 1
 #define APP_MP3_PLAYER_PLAYING_TASK_CORE 1
+
+/** EMA VU: vu_smooth = (vu_smooth * (N-1) + mx) / N. Tăng N → mượt hơn, phản ứng chậm hơn (tối thiểu 2). */
+#define APP_MP3_PLAYER_LED_VU_SMOOTH_DIV 6
 
 class AppMp3PlayerClass : public Application {
 public:
@@ -144,13 +148,25 @@ public:
         lv_obj_align(lv_btn_loop, LV_ALIGN_TOP_RIGHT, 0, 0);
         lv_obj_set_size(lv_btn_loop, 35, 35);
         lv_obj_set_style_radius(lv_btn_loop, LV_RADIUS_CIRCLE, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(lv_btn_loop, LV_COLOR_UNNECCESSARY, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(lv_btn_loop, loop_one ? LV_COLOR_INFO : LV_COLOR_UNNECCESSARY, LV_PART_MAIN);
         lv_obj_add_event_cb(lv_btn_loop, LV_OBJ_EVENT_CB(AppMp3PlayerClass, on_btn_loop_clicked), LV_EVENT_CLICKED, this);
 
         auto lv_label_loop = lv_label_create(lv_btn_loop);
         lv_obj_align(lv_label_loop, LV_ALIGN_CENTER, 0, 0);
         auto lv_label_loop_text = fa(0xf363);
         lv_label_set_text(lv_label_loop, lv_label_loop_text.c_str());
+
+        lv_btn_music_led = lv_button_create(lv_btn_container);
+        lv_obj_align(lv_btn_music_led, LV_ALIGN_RIGHT_MID, 0, 0);
+        lv_obj_set_size(lv_btn_music_led, 35, 35);
+        lv_obj_set_style_radius(lv_btn_music_led, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(lv_btn_music_led, music_led_enabled ? LV_COLOR_INFO : LV_COLOR_UNNECCESSARY, LV_PART_MAIN);
+        lv_obj_add_event_cb(lv_btn_music_led, LV_OBJ_EVENT_CB(AppMp3PlayerClass, on_btn_music_led_clicked), LV_EVENT_CLICKED, this);
+
+        auto lv_label_music_led = lv_label_create(lv_btn_music_led);
+        lv_obj_align(lv_label_music_led, LV_ALIGN_CENTER, 0, 0);
+        auto lv_label_music_led_text = fa(0xf0eb);
+        lv_label_set_text(lv_label_music_led, lv_label_music_led_text.c_str());
 
         get_files();
         list_item_click_ctx.resize(files.size());
@@ -173,6 +189,7 @@ public:
             screen = nullptr;
             lv_label_play = nullptr;
             lv_btn_loop = nullptr;
+            lv_btn_music_led = nullptr;
             list_item_click_ctx.clear();
             return;
         }
@@ -188,6 +205,7 @@ public:
             screen = nullptr;
             lv_label_play = nullptr;
             lv_btn_loop = nullptr;
+            lv_btn_music_led = nullptr;
             list_item_click_ctx.clear();
             return;
         }
@@ -234,6 +252,8 @@ public:
             pump_task_handle = nullptr;
         }
 
+        Led.set_color(0, 0, 0);
+
         request_next_song = false;
         app_closing = false;
 
@@ -243,6 +263,7 @@ public:
         screen = nullptr;
         lv_label_play = nullptr;
         lv_btn_loop = nullptr;
+        lv_btn_music_led = nullptr;
         list_item_click_ctx.clear();
     }
 
@@ -277,6 +298,7 @@ private:
 
     lv_obj_t* lv_label_play = nullptr;
     lv_obj_t* lv_btn_loop = nullptr;
+    lv_obj_t* lv_btn_music_led = nullptr;
     std::vector<std::string> files;
     Audio audio;
     ES8311 es8311;
@@ -289,6 +311,7 @@ private:
     uint8_t volume = 0;
     uint8_t volume_steps = 0;
     bool loop_one = false;
+    bool music_led_enabled = false;
     std::vector<ListItemClickCtx> list_item_click_ctx;
 
     volatile bool app_closing = false;
@@ -321,10 +344,38 @@ private:
     void pump_task() {
         while (!app_closing) {
             audio.loop();
+            update_led_from_audio();
             vTaskDelay(pdMS_TO_TICKS(1));
         }
         pump_task_handle = nullptr;
         vTaskDelete(nullptr);
+    }
+
+    void update_led_from_audio() {
+        if (!music_led_enabled) {
+            Led.set_color(0, 0, 0);
+            return;
+        }
+
+        if (!audio.isRunning()) {
+            Led.set_color(0, 0, 0);
+            return;
+        }
+
+        const uint16_t vu = audio.getVUlevel();
+        const uint8_t l = (vu >> 8) & 0xFF;
+        const uint8_t r = vu & 0xFF;
+        const uint8_t mx = l > r ? l : r;
+
+        static uint8_t vu_smooth = 0;
+        vu_smooth = static_cast<uint8_t>((vu_smooth * (APP_MP3_PLAYER_LED_VU_SMOOTH_DIV - 1) + mx) / APP_MP3_PLAYER_LED_VU_SMOOTH_DIV);
+
+        static uint16_t music_hue = 0;
+        music_hue = static_cast<uint16_t>(music_hue + 2 + (vu_smooth >> 2));
+
+        uint16_t v = static_cast<uint16_t>(vu_smooth) * 2u;
+        if (v > 255) v = 255;
+        Led.set_from_hsv(music_hue, 255, static_cast<uint8_t>(v));
     }
 
     void playing_task() {
@@ -454,6 +505,12 @@ private:
     void on_btn_loop_clicked() {
         loop_one = !loop_one;
         lv_obj_set_style_bg_color(lv_btn_loop, loop_one ? LV_COLOR_INFO : LV_COLOR_UNNECCESSARY, LV_PART_MAIN);
+    }
+
+    void on_btn_music_led_clicked() {
+        music_led_enabled = !music_led_enabled;
+        lv_obj_set_style_bg_color(lv_btn_music_led, music_led_enabled ? LV_COLOR_INFO : LV_COLOR_UNNECCESSARY, LV_PART_MAIN);
+        if (!music_led_enabled) Led.set_color(0, 0, 0);
     }
 };
 

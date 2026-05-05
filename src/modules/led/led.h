@@ -25,6 +25,12 @@ public:
         pixels.show();
     }
 
+    void set_from_hsv(uint16_t hue, uint8_t sat, uint8_t val) {
+        uint32_t c = pixels.ColorHSV(hue, sat, val);
+        pixels.setPixelColor(0, c);
+        pixels.show();
+    }
+
     void rainbow_update(uint16_t hue_step = 256) {
         rainbow_hue = (uint16_t)(rainbow_hue + hue_step);
 
