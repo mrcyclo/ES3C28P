@@ -2,6 +2,8 @@
 
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <lvgl.h>
 
 #include <cstdint>
@@ -17,7 +19,14 @@
         static_cast<Class*>(parameter)->Method(); \
     }
 
-static std::string fa(uint32_t cp) {
+static inline void wait_until_task_exited(TaskHandle_t& handle, uint32_t timeout_ms) {
+    const TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(timeout_ms);
+    while (handle != nullptr && xTaskGetTickCount() < deadline) {
+        vTaskDelay(1);
+    }
+}
+
+static inline std::string fa(uint32_t cp) {
     auto s = std::string{};
     if (cp <= 0x7FU) {
         s += static_cast<char>(cp);
@@ -38,7 +47,7 @@ static std::string fa(uint32_t cp) {
     return s;
 }
 
-static String http_get(WiFiClientSecure& client, String url, CookieJar* cookieJar = nullptr) {
+static inline String http_get(WiFiClientSecure& client, String url, CookieJar* cookieJar = nullptr) {
     HTTPClient http;
 
     if (!http.begin(client, url)) {
@@ -73,7 +82,7 @@ static String http_get(WiFiClientSecure& client, String url, CookieJar* cookieJa
     return body;
 }
 
-static String http_post_form(WiFiClientSecure& client, String url, String payload, CookieJar* cookieJar = nullptr) {
+static inline String http_post_form(WiFiClientSecure& client, String url, String payload, CookieJar* cookieJar = nullptr) {
     HTTPClient http;
 
     if (!http.begin(client, url)) {

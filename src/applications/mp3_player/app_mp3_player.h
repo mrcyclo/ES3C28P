@@ -194,6 +194,8 @@ public:
         es8311.setVolume(75);
         es8311.setBitsPerSample(16);
 
+        app_closing = false;
+
         xTaskCreatePinnedToCore(
             FREERTOS_TASK_CB(AppMp3PlayerClass, pump_task),
             "pump_task",
@@ -215,15 +217,24 @@ public:
     }
 
     void app_close() override {
-        if (pump_task_handle) {
-            vTaskDelete(pump_task_handle);
-            pump_task_handle = nullptr;
-        }
+        app_closing = true;
+
+        audio.stopSong();
+
+        wait_until_task_exited(playing_task_handle, 3000);
         if (playing_task_handle) {
             vTaskDelete(playing_task_handle);
             playing_task_handle = nullptr;
         }
-        audio.stopSong();
+
+        wait_until_task_exited(pump_task_handle, 3000);
+        if (pump_task_handle) {
+            vTaskDelete(pump_task_handle);
+            pump_task_handle = nullptr;
+        }
+
+        request_next_song = false;
+        app_closing = false;
 
         if (!screen) return;
 
@@ -279,6 +290,8 @@ private:
     bool loop_one = false;
     std::vector<ListItemClickCtx> list_item_click_ctx;
 
+    volatile bool app_closing = false;
+
     void get_files() {
         files.clear();
 
@@ -305,22 +318,26 @@ private:
     }
 
     void pump_task() {
-        while (true) {
+        while (!app_closing) {
             audio.loop();
             vTaskDelay(pdMS_TO_TICKS(1));
         }
+        pump_task_handle = nullptr;
+        vTaskDelete(nullptr);
     }
 
     void playing_task() {
-        while (true) {
+        while (!app_closing) {
             if (request_next_song) {
                 request_next_song = false;
                 audio.stopSong();
                 audio.connecttoFS(MicroSD.fs(), files[next_song_idx].c_str());
                 current_song_idx = next_song_idx;
             }
-            vTaskDelay(pdMS_TO_TICKS(100));
+            vTaskDelay(pdMS_TO_TICKS(1000));
         }
+        playing_task_handle = nullptr;
+        vTaskDelete(nullptr);
     }
 
     void pause_resume() {
