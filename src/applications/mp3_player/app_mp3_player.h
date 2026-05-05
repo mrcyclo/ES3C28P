@@ -47,6 +47,7 @@ public:
         if (screen) return;
 
         screen = lv_obj_create(nullptr);
+        lv_obj_set_style_pad_top(screen, STATUS_BAR_HEIGHT, LV_PART_MAIN);
 
         static int32_t col_dsc[] = {LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
         static int32_t row_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
@@ -73,7 +74,7 @@ public:
 
         auto lv_button_bg = lv_obj_create(lv_btn_container);
         lv_obj_align(lv_button_bg, LV_ALIGN_CENTER, 0, 0);
-        lv_obj_set_size(lv_button_bg, 140, 140);
+        lv_obj_set_size(lv_button_bg, 130, 130);
         lv_obj_set_style_bg_color(lv_button_bg, LV_COLOR_INFO, LV_PART_MAIN);
         lv_obj_set_style_radius(lv_button_bg, LV_RADIUS_CIRCLE, LV_PART_MAIN);
         lv_obj_set_style_pad_all(lv_button_bg, 0, LV_PART_MAIN);
