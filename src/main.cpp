@@ -97,18 +97,12 @@ void setup_tft_backlight_pwm(void) {
     // Điều khiển active-low: đảo duty để % càng cao vẫn tương ứng càng sáng.
     bl_duty = bl_pwm_max - bl_duty;
 #endif
-    // LEDC channel index; pick one not used elsewhere in this sketch.
-    // Chỉ số kênh LEDC; chọn kênh chưa dùng ở chỗ khác trong sketch.
-    constexpr uint8_t bl_ledc_channel = 0;
-    // Configure LEDC timer: channel, frequency, resolution.
-    // Cấu hình bộ định thời LEDC: kênh, tần số, độ phân giải.
-    ledcSetup(bl_ledc_channel, bl_pwm_hz, bl_pwm_bits);
-    // Route TFT_BL GPIO to that LEDC channel.
-    // Gán chân GPIO TFT_BL vào kênh LEDC đó.
-    ledcAttachPin(TFT_BL, bl_ledc_channel);
-    // Apply computed duty to the pin.
-    // Ghi duty đã tính ra chân.
-    ledcWrite(bl_ledc_channel, bl_duty);
+    // Arduino-ESP32 3.x: timer + pin binding in one call (replaces ledcSetup + ledcAttachPin).
+    // Arduino-ESP32 3.x: gắn timer và chân trong một lệnh (thay ledcSetup + ledcAttachPin).
+    ledcAttach(TFT_BL, bl_pwm_hz, bl_pwm_bits);
+    // Apply computed duty (3.x: first arg is the GPIO pin, not LEDC channel).
+    // Ghi duty; 3.x: tham số đầu là chân GPIO, không phải kênh LEDC.
+    ledcWrite(TFT_BL, bl_duty);
 }
 
 void lvgl_task(void* parameter) {
@@ -237,13 +231,13 @@ void setup() {
     AppManagement.set_home_screen(Home.get_screen());
 
     xTaskCreatePinnedToCore(
-        lvgl_task,             // Task function
-        "lvgl_task",           // Task name
-        10000,                 // Stack size (bytes)
-        NULL,                  // Parameters
-        configMAX_PRIORITIES,  // Priority
-        nullptr,               // Task handle
-        0                      // Core 0
+        lvgl_task,                 // Task function
+        "lvgl_task",               // Task name
+        10000,                     // Stack size (bytes)
+        NULL,                      // Parameters
+        configMAX_PRIORITIES - 1,  // Highest valid FreeRTOS priority (0 … MAX-1)
+        nullptr,                   // Task handle
+        0                          // Core 0
     );
 
     xTaskCreatePinnedToCore(
