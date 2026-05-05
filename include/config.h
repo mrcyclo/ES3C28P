@@ -3,7 +3,7 @@
 #include <lvgl.h>
 
 #define TFT_ROTATION LV_DISPLAY_ROTATION_0
-#define TFT_BACKLIGHT_PERCENT 50
+#define TFT_BACKLIGHT_PERCENT 100
 #define STATUS_BAR_HEIGHT 20
 
 // Adaptive scheduling cho LVGL:
@@ -16,6 +16,7 @@
 
 #define APP_WIFI_JSON_PATH "/.system/wifi.json"
 
+#define LV_COLOR_INFO lv_color_hex(0x0291d5)
 #define LV_COLOR_SUCCESS lv_color_hex(0x6bb187)
 #define LV_COLOR_WARNING lv_color_hex(0xdbae5a)
 #define LV_COLOR_ERROR lv_color_hex(0xac3e31)

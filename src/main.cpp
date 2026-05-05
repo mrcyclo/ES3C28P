@@ -8,6 +8,7 @@
 
 #include <cstring>
 
+#include "applications/mp3_player/app_mp3_player.h"
 #include "applications/pc_monitor/app_pc_monitor.h"
 #include "applications/rainbow/app_rainbow.h"
 #include "applications/weather/app_weather.h"
@@ -28,6 +29,7 @@ void register_apps() {
     AppManagement.register_app(AppWifi);
     AppManagement.register_app(AppPcMonitor);
     AppManagement.register_app(AppWeather);
+    AppManagement.register_app(AppMp3Player);
 }
 
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
